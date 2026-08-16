@@ -493,6 +493,10 @@ function worldQuizOk(btn) {
     if (W.boss.hp <= 0) {
       W.boss.defeated = true;
       W.checkpoint = W.boss.x + 20;
+      S.bosses = S.bosses || {};
+      S.bosses[W.unit.id] = true; // al bestiario de la pestaña Palabras
+      checkBadges();
+      saveState();
       playSfx("win");
       burst(document.getElementById("w-canvas"), { emoji: ["🌟", "🌲", "✨"], n: 18 });
       closeWorldQuiz("Basajaun garaituta! El cohete de Álvaro te espera 🚀");

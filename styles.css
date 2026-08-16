@@ -639,6 +639,59 @@ button, .chip, .option, .match-btn, .lesson-btn {
   color: var(--text) !important;
 }
 
+/* ---------- Bestiario mitológico ---------- */
+.besti-head { display: flex; align-items: center; gap: 8px; }
+.besti-count {
+  margin-left: auto; font-size: 12px; font-weight: 900;
+  color: var(--purple-dark); background: var(--purple-soft);
+  border-radius: 999px; padding: 3px 10px;
+  font-variant-numeric: tabular-nums;
+}
+:root[data-theme="dark"] .besti-count { color: var(--purple); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .besti-count { color: var(--purple); } }
+.besti-sub { font-size: 12.5px; font-weight: 600; color: var(--text-mut); margin: -6px 0 12px; }
+.besti-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+@media (max-width: 359px) { .besti-grid { grid-template-columns: repeat(3, 1fr); } }
+.besti-cell {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 10px 4px 8px; border-radius: 14px;
+  border: 2px solid var(--border); background: var(--surface);
+  font: inherit; text-align: center; min-width: 0;
+}
+.besti-cell.won {
+  cursor: pointer; border-color: var(--purple);
+  background: var(--purple-soft);
+  transition: transform .12s;
+}
+.besti-cell.won:active { transform: scale(.93); }
+.besti-cell.locked { opacity: .5; filter: grayscale(1); }
+.besti-emoji { font-size: 26px; line-height: 1.15; }
+.besti-name {
+  font-size: 11px; font-weight: 900; color: var(--text);
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.besti-title {
+  font-size: 9.5px; font-weight: 700; color: var(--text-mut); line-height: 1.2;
+  max-width: 100%; overflow: hidden;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.besti-modal { max-height: 86vh; overflow-y: auto; }
+.besti-modal-name { font-size: 22px; font-weight: 900; margin: 2px 0 0; }
+.besti-modal .besti-epithet {
+  font-size: 14px; font-weight: 800; color: var(--purple-dark);
+  margin: 0 0 10px;
+}
+:root[data-theme="dark"] .besti-modal .besti-epithet { color: var(--purple); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .besti-modal .besti-epithet { color: var(--purple); } }
+.besti-modal .wq-lore { text-align: left; margin-bottom: 12px; }
+.besti-cry {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface-2); border-radius: 12px;
+  padding: 10px 12px; margin-bottom: 16px; text-align: left;
+}
+.besti-cry-eu { font-size: 13.5px; font-weight: 800; }
+.besti-cry-es { font-size: 12.5px; font-weight: 600; color: var(--text-mut); margin-top: 2px; }
+
 /* ---------- Logros ---------- */
 .badges-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .badge {

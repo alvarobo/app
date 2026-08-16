@@ -33,6 +33,7 @@ const defaultState = () => ({
   stories: {},            // id de historia -> true (completada)
   blitzBest: 0,           // récord del reto Erronka (60 s)
   worlds: {},             // unitId -> { stars, done } de los mundos 2D
+  bosses: {},             // unitId -> true (jefes mitológicos vencidos)
 });
 
 let S = loadState();
@@ -127,6 +128,15 @@ function level() { return Math.floor(S.xp / 100) + 1; }
 function levelPct() { return S.xp % 100; }
 
 function unitDone(u) { return (S.progress[u.id] || 0) >= LESSONS_PER_UNIT; }
+
+// Jefe vencido (o mundo completado, que lo implica).
+function bossDefeated(unitId) {
+  return !!((S.bosses && S.bosses[unitId]) || (S.worlds && S.worlds[unitId] && S.worlds[unitId].done));
+}
+
+function bossesDefeatedCount() {
+  return COURSE.filter(u => bossDefeated(u.id)).length;
+}
 
 // Si la unidad tiene mundo 2D, superarlo es la puerta a la siguiente.
 function worldGateDone(u) {
@@ -236,6 +246,8 @@ const BADGES = [
   { id: "perfect5", icon: "💎", t: "Perfektua", d: "5 lecciones perfectas", test: () => S.perfects >= 5 },
   { id: "words50", icon: "🗣️", t: "Hiztuna", d: "Practica 50 palabras distintas", test: () => Object.keys(S.wordStats).length >= 50 },
   { id: "blitz20", icon: "⚡", t: "Ziztu bizian", d: "20+ puntos en un reto Erronka", test: () => (S.blitzBest || 0) >= 20 },
+  { id: "boss1", icon: "⚔️", t: "Ehiztaria", d: "Vence a tu primer ser mitológico", test: () => bossesDefeatedCount() >= 1 },
+  { id: "boss16", icon: "🐲", t: "Mitozalea", d: "Vence a los 16 seres mitológicos", test: () => bossesDefeatedCount() >= 16 },
   { id: "gems300", icon: "💰", t: "Aberatsa", d: "Acumula 300 gemas", test: () => S.gems >= 300 },
 ];
 
@@ -1292,6 +1304,9 @@ function renderHome() {
   app.querySelectorAll("[data-world]").forEach(b =>
     b.addEventListener("click", () => startWorld(b.dataset.world)));
 
+  app.querySelectorAll("[data-boss]").forEach(b =>
+    b.addEventListener("click", () => showBossModal(b.dataset.boss)));
+
   app.querySelectorAll("[data-story]").forEach(b =>
     b.addEventListener("click", () => openStory(b.dataset.story)));
 
@@ -1376,6 +1391,7 @@ function vocabHTML() {
         ${VERB_TABLES.map(v => `<button class="verb-btn" data-verb="${v.id}">${esc(v.label)}</button>`).join("")}
       </div>
     </div>
+    ${bestiaryHTML()}
     <input class="vocab-search" id="vocab-search" type="search" placeholder="🔍 Buscar palabra en euskera o español…" autocomplete="off">
     ${units.map(u => `
       <div class="profile-card">
@@ -1400,6 +1416,65 @@ function vocabHTML() {
             </div>`;
         }).join("")}
       </div>`).join("")}`;
+}
+
+// Bestiario: colección de seres mitológicos vencidos en los mundos,
+// con su nombre en euskera y su apodo en castellano.
+function bestiaryHTML() {
+  const total = COURSE.filter(u => WORLD_META[u.id]).length;
+  const n = bossesDefeatedCount();
+  return `
+    <div class="profile-card">
+      <h2 class="besti-head">🐲 Bestiario mitológico <span class="besti-count">${n}/${total}</span></h2>
+      <p class="besti-sub">Los seres de la mitología vasca que vences al final de cada mundo. Toca uno para releer su leyenda.</p>
+      <div class="besti-grid">
+        ${COURSE.map(u => {
+          const wm = WORLD_META[u.id];
+          if (!wm) return "";
+          if (bossDefeated(u.id)) {
+            return `<button class="besti-cell won" data-boss="${u.id}" aria-label="${esc(wm.boss)}, ${esc(wm.bossTitle || "")}">
+              <span class="besti-emoji">${wm.bossEmoji}</span>
+              <span class="besti-name">${esc(wm.boss)}</span>
+              <span class="besti-title">${esc(wm.bossTitle || "")}</span>
+            </button>`;
+          }
+          return `<div class="besti-cell locked" aria-label="Mundo ${wm.num}: sin descubrir">
+            <span class="besti-emoji">❓</span>
+            <span class="besti-name">???</span>
+            <span class="besti-title">Mundo ${wm.num}</span>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>`;
+}
+
+// Ficha de un ser vencido: leyenda, grito de batalla y su significado.
+function showBossModal(unitId) {
+  const wm = WORLD_META[unitId];
+  const unit = COURSE.find(u => u.id === unitId);
+  if (!wm || !unit || !bossDefeated(unitId)) return;
+  const wrap = document.createElement("div");
+  wrap.className = "modal-backdrop";
+  wrap.innerHTML = `
+    <div class="modal besti-modal">
+      <div class="modal-emoji">${wm.bossEmoji}</div>
+      <div class="boss-tag">Mundo ${wm.num} · ${unit.icon} ${esc(unit.title)} · Vencido ⚔️</div>
+      <h2 class="besti-modal-name">${esc(wm.boss)}</h2>
+      <p class="besti-epithet">${esc(wm.bossTitle || "")}</p>
+      <div class="wq-lore">${esc(wm.lore || "")}</div>
+      <div class="besti-cry">
+        <button class="vocab-say" data-cry aria-label="Escuchar su grito en euskera">🔊</button>
+        <div>
+          <div class="besti-cry-eu">«${esc(wm.bossIntro)}»</div>
+          <div class="besti-cry-es">«${esc(wm.bossIntroEs)}»</div>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-full" id="besti-close">Entendido</button>
+    </div>`;
+  document.body.appendChild(wrap);
+  wrap.querySelector("[data-cry]").addEventListener("click", () => speak(wm.bossIntro));
+  wrap.querySelector("#besti-close").addEventListener("click", () => wrap.remove());
+  wrap.addEventListener("click", e => { if (e.target === wrap) wrap.remove(); });
 }
 
 // Saludo según la hora, en euskera y con su traducción: cada visita enseña.
