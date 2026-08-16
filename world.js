@@ -12,6 +12,117 @@
 let W = null; // estado del mundo activo
 window.__W = () => W; // gancho de depuración/pruebas
 
+/* ---------------- Generación por dificultad ----------------
+   Cada mundo construye su terreno con una semilla propia: más
+   huecos y más anchos, plataformas más altas y, desde dificultad
+   3, plataformas móviles. La lluvia añade zonas de viento. */
+
+function makeRng(seed) {
+  let s = seed % 2147483647;
+  if (s <= 0) s += 2147483646;
+  return () => ((s = (s * 48271) % 2147483647) - 1) / 2147483646;
+}
+
+function gAt(ground, x) {
+  for (const g of ground) if (x >= g.x0 && x <= g.x1) return true;
+  return false;
+}
+
+function buildTerrain(meta) {
+  const d = meta.difficulty || 1;
+  const rnd = makeRng(meta.num * 7919 + 13);
+  const slots = [700, 980, 1160, 1460, 1740, 2060].sort(() => rnd() - 0.5);
+  const nGaps = Math.min(2 + Math.floor(d / 2), 4);
+  const chosen = [];
+  for (const slot of slots) {
+    if (chosen.length >= nGaps) break;
+    if (chosen.every(c => Math.abs(c - slot) > 220)) chosen.push(slot);
+  }
+  chosen.sort((a, b) => a - b);
+  const gapW = Math.min(96, 54 + d * 6);
+  const ground = [];
+  let x0 = 0;
+  for (const c of chosen) { ground.push({ x0, x1: c }); x0 = c + gapW; }
+  ground.push({ x0, x1: 2560 });
+
+  const platforms = [];
+  chosen.forEach((c, i) => {
+    const moving = d >= 3 && i % 2 === 0;
+    const px = c + gapW / 2 - 40;
+    platforms.push({
+      x: px, y: 170 - Math.min(12, d * 2), w: 80, dx: 0,
+      move: moving ? { cx: px, range: 30 + d * 4, speed: 0.02 + d * 0.004, phase: rnd() * 6.28 } : null,
+    });
+  });
+  for (const px of [330, 1090, 1560, 2050]) {
+    if (chosen.every(c => Math.abs(c - px) > 130)) {
+      platforms.push({ x: px, y: 178 - Math.min(16, d * 3), w: 90, dx: 0, move: null });
+    }
+  }
+  return { ground, platforms };
+}
+
+const COLOR_ORBS = [
+  { eu: "gorria", c: "#e04b3a" },
+  { eu: "urdina", c: "#2f7fd9" },
+  { eu: "berdea", c: "#3e8a36" },
+  { eu: "horia", c: "#ffc800" },
+];
+
+// Coleccionables por temática: estrellas, números EN ORDEN,
+// orbes del color pedido, o pintxos.
+function buildCollectibles(meta, terrain) {
+  const kind = (meta.theme && meta.theme.collectible) || "star";
+  const rnd = makeRng(meta.num * 104729 + 7);
+  const spots = terrain.platforms.slice(0, 5).map(pl => ({ x: pl.x + pl.w / 2, y: pl.y - 30 }));
+  let gx = 420;
+  while (spots.length < 5) {
+    while (!gAt(terrain.ground, gx)) gx += 60;
+    spots.push({ x: gx, y: 202 });
+    gx += 430;
+  }
+  spots.sort((a, b) => a.x - b.x);
+  if (kind === "number") {
+    const names = ["bat", "bi", "hiru", "lau", "bost"];
+    return { items: spots.map((s, i) => ({ ...s, got: false, kind, idx: i, label: names[i], cool: 0 })), target: null };
+  }
+  if (kind === "color") {
+    const target = COLOR_ORBS[Math.floor(rnd() * COLOR_ORBS.length)];
+    const items = spots.map(s => ({ ...s, got: false, kind, color: target, good: true }));
+    for (let i = 0; i < 3; i++) {
+      let dx = 380 + i * 640 + Math.floor(rnd() * 120);
+      while (!gAt(terrain.ground, dx)) dx += 60;
+      items.push({ x: dx, y: 204, got: false, kind, color: pick(COLOR_ORBS.filter(c => c !== target)), good: false });
+    }
+    return { items, target };
+  }
+  return { items: spots.map(s => ({ ...s, got: false, kind })), target: null };
+}
+
+function worldFriend(meta) {
+  return meta.friend || {
+    name: "Alvaro", label: "Álvaro",
+    greet: `Kaixo, Nao! Mundu ${meta.num} gaindituta! Bagoaz aurrera?`,
+    greetEs: `¡Hola, Nao! ¡Mundo ${meta.num} superado! ¿Seguimos adelante?`,
+  };
+}
+
+function updateWorldHud() {
+  const el = document.getElementById("w-stars");
+  if (!el || !W) return;
+  const k = (W.meta.theme && W.meta.theme.collectible) || "star";
+  if (k === "color") el.textContent = `🎯 ${W.colorTarget.eu} ${W.got}/5`;
+  else el.textContent = `${k === "pintxo" ? "🍢" : k === "number" ? "🔢" : "⭐"} ${W.got}/5`;
+}
+
+function collectibleHint(meta) {
+  const k = (meta.theme && meta.theme.collectible) || "star";
+  if (k === "number") return "Recoge los números <b>en orden</b>: bat → bost.";
+  if (k === "color") return "Recoge solo los orbes del <b>color que se pide</b> arriba.";
+  if (k === "pintxo") return "Recoge los 5 <b>pintxos</b>.";
+  return "Coge las 5 ⭐.";
+}
+
 function startWorld(unitId) {
   route = { view: "world", unitId };
   render();
@@ -42,7 +153,7 @@ function renderWorld() {
         <button class="wc-btn wc-jump" id="wc-jump" aria-label="Saltar">A</button>
       </div>
       <p class="page-sub world-help">Mueve a <b>Nao</b> con ◀ ▶ y salta con <b>A</b> (teclado: flechas + espacio).
-      El día pasa mientras avanzas: saluda bien a cada persona, coge las ⭐ y llega al cohete de <b>Álvaro</b> antes de que caiga la noche… tras vencer al ${esc(meta.boss)}.</p>
+      ${collectibleHint(meta)} Responde bien a la gente para pasar, vence a <b>${esc(meta.boss)}</b> y llega al cohete de <b>Álvaro</b>.</p>
     </div>`;
   document.getElementById("w-quit").addEventListener("click", quitWorld);
   initWorld(unit, meta);
@@ -79,27 +190,13 @@ function initWorld(unit, meta) {
     keys: {},
     paused: false,
     done: false,
-    ground: [
-      { x0: 0, x1: 780 },
-      { x0: 850, x1: 1560 },
-      { x0: 1630, x1: 2560 },
-    ],
-    platforms: [
-      { x: 330, y: 178, w: 90 },
-      { x: 700, y: 168, w: 80 },
-      { x: 1090, y: 175, w: 90 },
-      { x: 1555, y: 165, w: 90 },
-      { x: 2050, y: 175, w: 90 },
-    ],
-    stars: [
-      { x: 375, y: 148, got: false },
-      { x: 740, y: 136, got: false },
-      { x: 1135, y: 145, got: false },
-      { x: 1600, y: 133, got: false },
-      { x: 2095, y: 145, got: false },
-    ],
+    ground: [],
+    platforms: [],
+    stars: [],
+    colorTarget: null,
+    windZones: [],
     gates: meta.gates.map((g, i) => ({ ...g, x: gateX[i], open: false, greeted: false, used: [] })),
-    boss: { x: 2280, hp: 3, hpMax: 3, defeated: false, shake: 0, greeted: false },
+    boss: { x: 2280, hp: meta.bossHp || 3, hpMax: meta.bossHp || 3, defeated: false, shake: 0, greeted: false },
     friendX: 2410,
     rocketX: 2470,
     met: false,
@@ -108,6 +205,24 @@ function initWorld(unit, meta) {
     got: 0,
     onKeyDown: null, onKeyUp: null,
   };
+
+  // terreno, coleccionables y clima según el mundo
+  const terrain = buildTerrain(meta);
+  W.ground = terrain.ground;
+  W.platforms = terrain.platforms;
+  const col = buildCollectibles(meta, terrain);
+  W.stars = col.items;
+  W.colorTarget = col.target;
+  if (meta.theme && meta.theme.weather === "rain") {
+    W.windZones = [{ x0: 880, x1: 1480, f: 0.32 }, { x0: 1720, x1: 2180, f: -0.28 }];
+  }
+  updateWorldHud();
+  if (W.colorTarget) {
+    const tgt = W.colorTarget; // capturado: el aviso no debe disparar tras salir del mundo
+    setTimeout(() => {
+      if (W && W.colorTarget === tgt) { toast(`🎯 Bildu: ${tgt.eu.toUpperCase()}`); speak(tgt.eu); }
+    }, 600);
+  }
 
   const k = W.keys;
   W.onKeyDown = e => {
@@ -176,7 +291,20 @@ function worldUpdate() {
   if ((k.jump || k.jumpQueued) && p.onGround) { p.vy = JUMP; p.onGround = false; playSfx("tap"); }
   k.jumpQueued = false;
 
+  // plataformas móviles (dificultad ≥3): se mueven y te llevan encima
+  for (const pl of W.platforms) {
+    if (pl.move) {
+      const nx = pl.move.cx + Math.sin(W.t * pl.move.speed + pl.move.phase) * pl.move.range;
+      pl.dx = nx - pl.x;
+      pl.x = nx;
+    } else pl.dx = 0;
+  }
+
   p.x = Math.max(14, Math.min(W.worldEnd - 14, p.x + p.vx));
+
+  // zonas de viento (mundos con tormenta): empujan a Nao
+  for (const z of W.windZones) if (p.x > z.x0 && p.x < z.x1) p.x += z.f;
+
   p.vy += GRAV;
   p.y += p.vy;
 
@@ -187,6 +315,7 @@ function worldUpdate() {
     if (p.x > pl.x - 6 && p.x < pl.x + pl.w + 6 && p.vy >= 0 &&
         p.y >= pl.y && p.y - p.vy <= pl.y + 6) {
       p.y = pl.y; p.vy = 0; p.onGround = true;
+      p.x += pl.dx; // viajar con la plataforma
     }
   }
   if (p.y > 300) {
@@ -194,12 +323,32 @@ function worldUpdate() {
     playSfx("buzz");
   }
 
+  // coleccionables: estrellas / números en orden / orbes de color / pintxos
+  const NUM_NAMES = ["bat", "bi", "hiru", "lau", "bost"];
   for (const s of W.stars) {
-    if (!s.got && Math.abs(p.x - s.x) < 16 && Math.abs((p.y - 22) - s.y) < 20) {
-      s.got = true; W.got++;
-      playSfx("pair");
-      const el = document.getElementById("w-stars");
-      if (el) el.textContent = `⭐ ${W.got}/5`;
+    if (s.got) continue;
+    if (s.cool > 0) { s.cool--; continue; }
+    if (Math.abs(p.x - s.x) < 16 && Math.abs((p.y - 22) - s.y) < 20) {
+      if (s.kind === "number") {
+        if (s.idx === W.got) {
+          s.got = true; W.got++;
+          playSfx("pair");
+          speak(s.label);
+        } else {
+          s.cool = 50;
+          playSfx("buzz");
+          toast(`Ordenean! Orain: «${NUM_NAMES[W.got]}»`);
+        }
+      } else if (s.kind === "color") {
+        s.got = true;
+        speak(s.color.eu);
+        if (s.good) { W.got++; playSfx("pair"); }
+        else { playSfx("buzz"); toast(`Hori ${s.color.eu} da! Bildu: ${W.colorTarget.eu}`); }
+      } else {
+        s.got = true; W.got++;
+        playSfx("pair");
+      }
+      updateWorldHud();
     }
   }
 
@@ -357,7 +506,7 @@ function closeWorldQuiz(msg) {
 function openFriendPanel() {
   W.met = true;
   W.paused = true;
-  const f = W.meta.friend;
+  const f = worldFriend(W.meta);
   speak(f.greet);
   const panel = document.getElementById("w-quiz");
   panel.hidden = false;
@@ -369,7 +518,7 @@ function openFriendPanel() {
         <div class="wq-greet">«${esc(f.greet)}» <span>${esc(f.greetEs)}</span></div>
       </div>
     </div>
-    <button class="btn btn-primary btn-full" id="w-launch" style="margin-top:6px">🚀 ¡Despegar al Mundo ${W.meta.num + 1}!</button>`;
+    <button class="btn btn-primary btn-full" id="w-launch" style="margin-top:6px">${COURSE.findIndex(u => u.id === W.unit.id) === COURSE.length - 1 ? "🎓 ¡Rumbo al examen A1!" : `🚀 ¡Despegar al Mundo ${W.meta.num + 1}!`}</button>`;
   document.getElementById("w-launch").addEventListener("click", () => {
     panel.hidden = true;
     panel.innerHTML = "";
@@ -435,85 +584,195 @@ function worldDraw() {
   const prog = Math.min(1, cam / (W.worldEnd - 480));
   const pal = dayPalette(prog);
 
-  // cielo, mar y hierba según la hora del día
-  const sky = ctx.createLinearGradient(0, 0, 0, 270);
-  sky.addColorStop(0, pal.top);
-  sky.addColorStop(0.58, pal.hor);
-  sky.addColorStop(0.62, pal.sea);
-  sky.addColorStop(0.78, "#8fce7c");
-  sky.addColorStop(1, "#6db24f");
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, 480, 270);
+  const th = W.meta.theme || {};
+  const interior = th.backdrop === "room";
+  const rainy = th.weather === "rain";
 
-  // sol → se pone; luna y estrellas de noche
-  const sunX = 70 + prog * 340;
-  const sunY = 95 - Math.sin(prog * Math.PI) * 60;
-  ctx.fillStyle = prog < 0.6 ? "#fff3c4" : "#ff9e5e";
-  ctx.beginPath();
-  ctx.arc(sunX, sunY, 14, 0, Math.PI * 2);
-  ctx.fill();
-  if (pal.night > 0) {
-    ctx.globalAlpha = pal.night;
-    ctx.fillStyle = "#f2f0e4";
-    ctx.beginPath();
-    ctx.arc(400, 42, 10, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#ffffff";
-    for (let i = 0; i < 24; i++) {
-      const sx = (i * 97 + 31) % 480;
-      const sy = (i * 53 + 11) % 120;
-      if ((t + i * 7) % 90 < 70) ctx.fillRect(sx, sy, 2, 2);
+  if (interior) {
+    // interior de caserío: pared cálida, ventanas al valle, viga
+    ctx.fillStyle = "#e8dcc8";
+    ctx.fillRect(0, 0, 480, 270);
+    ctx.fillStyle = "#d3c3a8";
+    ctx.fillRect(0, 26, 480, 6);
+    for (let i = 0; i < 4; i++) {
+      const wx = 60 + i * 130 - (cam * 0.2) % 130;
+      ctx.fillStyle = "#8a6a42";
+      ctx.fillRect(wx - 3, 52, 56, 60);
+      ctx.fillStyle = "#bfe3f2";
+      ctx.fillRect(wx, 55, 50, 54);
+      ctx.fillStyle = "#7cb96a";
+      ctx.fillRect(wx, 92, 50, 17);
+      ctx.fillStyle = "#8a6a42";
+      ctx.fillRect(wx + 23, 55, 4, 54);
     }
-    ctx.globalAlpha = 1;
-  }
+  } else {
+    // cielo con ciclo del día (gris si llueve)
+    const sky = ctx.createLinearGradient(0, 0, 0, 270);
+    if (rainy) {
+      sky.addColorStop(0, "#8b98a8");
+      sky.addColorStop(0.58, "#aeb8c2");
+      sky.addColorStop(0.62, "#7f92a4");
+    } else {
+      sky.addColorStop(0, pal.top);
+      sky.addColorStop(0.58, pal.hor);
+      sky.addColorStop(0.62, pal.sea);
+    }
+    sky.addColorStop(0.78, "#8fce7c");
+    sky.addColorStop(1, "#6db24f");
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, 480, 270);
 
-  // nubes
-  ctx.fillStyle = `rgba(255,255,255,${0.85 - pal.night * 0.5})`;
-  for (let i = 0; i < 4; i++) {
-    const cx = ((i * 260 + t * 0.15) % (480 + 160)) - 80;
-    const cy = 28 + (i % 2) * 26;
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, 34, 10, 0, 0, Math.PI * 2);
-    ctx.ellipse(cx + 22, cy + 4, 22, 8, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
+    // sol → se pone; luna y estrellas de noche
+    if (!rainy) {
+      const sunX = 70 + prog * 340;
+      const sunY = 95 - Math.sin(prog * Math.PI) * 60;
+      ctx.fillStyle = prog < 0.6 ? "#fff3c4" : "#ff9e5e";
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, 14, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (pal.night > 0 && !rainy) {
+      ctx.globalAlpha = pal.night;
+      ctx.fillStyle = "#f2f0e4";
+      ctx.beginPath();
+      ctx.arc(400, 42, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      for (let i = 0; i < 24; i++) {
+        const sx = (i * 97 + 31) % 480;
+        const sy = (i * 53 + 11) % 120;
+        if ((t + i * 7) % 90 < 70) ctx.fillRect(sx, sy, 2, 2);
+      }
+      ctx.globalAlpha = 1;
+    }
 
-  // colinas lejanas (parallax)
-  ctx.fillStyle = "#7cb96a";
-  for (let i = -1; i < 6; i++) {
-    const hx = i * 220 - (cam * 0.3) % 220;
-    ctx.beginPath();
-    ctx.ellipse(hx, 172, 130, 44, 0, Math.PI, 0);
-    ctx.fill();
+    // nubes
+    ctx.fillStyle = `rgba(255,255,255,${rainy ? 0.35 : 0.85 - pal.night * 0.5})`;
+    for (let i = 0; i < 4; i++) {
+      const cx = ((i * 260 + t * (rainy ? 0.5 : 0.15)) % (480 + 160)) - 80;
+      const cy = 28 + (i % 2) * 26;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 34, 10, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx + 22, cy + 4, 22, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // fondo lejano según temática
+    if (th.backdrop === "mountain" || th.backdrop === "forest") {
+      ctx.fillStyle = th.backdrop === "mountain" ? "#8a9bb0" : "#4c7c46";
+      for (let i = -1; i < 7; i++) {
+        const mx = i * 190 - (cam * 0.22) % 190;
+        ctx.beginPath();
+        ctx.moveTo(mx - 90, 176); ctx.lineTo(mx, 86); ctx.lineTo(mx + 90, 176);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+    ctx.fillStyle = "#7cb96a";
+    for (let i = -1; i < 6; i++) {
+      const hx = i * 220 - (cam * 0.3) % 220;
+      ctx.beginPath();
+      ctx.ellipse(hx, 172, 130, 44, 0, Math.PI, 0);
+      ctx.fill();
+    }
+    if (th.backdrop === "houses") {
+      // hilera de caseríos
+      for (let i = -1; i < 8; i++) {
+        const hx = i * 170 - (cam * 0.45) % 170;
+        ctx.fillStyle = "#f0e9dc";
+        ctx.fillRect(hx, 148, 74, 34);
+        ctx.fillStyle = "#a04a3a";
+        ctx.beginPath();
+        ctx.moveTo(hx - 6, 148); ctx.lineTo(hx + 37, 128); ctx.lineTo(hx + 80, 148);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#8a5230";
+        ctx.fillRect(hx + 8, 158, 12, 24);
+        ctx.fillRect(hx + 46, 156, 14, 12);
+      }
+    } else if (th.backdrop === "stalls") {
+      // puestos de mercado con toldos
+      const awn = ["#e04b3a", "#3f6ea5", "#3e8a36", "#ffc800"];
+      for (let i = -1; i < 9; i++) {
+        const sx = i * 150 - (cam * 0.45) % 150;
+        ctx.fillStyle = "#8a6a42";
+        ctx.fillRect(sx, 156, 64, 26);
+        ctx.fillStyle = awn[((i % 4) + 4) % 4];
+        ctx.fillRect(sx - 5, 146, 74, 12);
+        ctx.fillStyle = "#f0e9dc";
+        for (let jj = 0; jj < 4; jj++) ctx.fillRect(sx - 5 + jj * 19, 152, 10, 6);
+      }
+    } else if (th.backdrop === "forest") {
+      ctx.fillStyle = "#2f6b2a";
+      for (let i = -1; i < 10; i++) {
+        const px2 = i * 120 - (cam * 0.45) % 120;
+        ctx.beginPath();
+        ctx.moveTo(px2 - 22, 182); ctx.lineTo(px2, 122); ctx.lineTo(px2 + 22, 182);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#5c4632";
+        ctx.fillRect(px2 - 3, 182, 6, 8);
+        ctx.fillStyle = "#2f6b2a";
+      }
+    } else if (th.backdrop === "station") {
+      // andén con postes y catenaria
+      ctx.strokeStyle = "#5a6470";
+      ctx.lineWidth = 2;
+      for (let i = -1; i < 8; i++) {
+        const px2 = i * 180 - (cam * 0.45) % 180;
+        ctx.strokeRect(px2, 128, 3, 54);
+        ctx.beginPath();
+        ctx.moveTo(px2 - 40, 132); ctx.lineTo(px2 + 43, 132);
+        ctx.stroke();
+      }
+      ctx.fillStyle = "#c9ced6";
+      ctx.fillRect(0, 176, 480, 8);
+    }
   }
 
   ctx.save();
   ctx.translate(-cam, 0);
 
+  const gTop = interior ? "#b08954" : "#5da043";
+  const gSoil = interior ? "#8a6238" : "#7a5230";
+  const gGrass = interior ? "#c9a06a" : "#8fce7c";
   for (const g of W.ground) {
-    ctx.fillStyle = "#5da043";
+    ctx.fillStyle = gTop;
     ctx.fillRect(g.x0, W.groundY, g.x1 - g.x0, 8);
-    ctx.fillStyle = "#7a5230";
+    ctx.fillStyle = gSoil;
     ctx.fillRect(g.x0, W.groundY + 8, g.x1 - g.x0, 40);
-    ctx.fillStyle = "#8fce7c";
+    ctx.fillStyle = gGrass;
     for (let x = g.x0; x < g.x1; x += 14) ctx.fillRect(x, W.groundY - 3, 6, 3);
   }
 
-  ctx.fillStyle = "#9a7c58";
-  for (let x = 40; x < W.worldEnd; x += 90) {
-    if (groundAt(x) !== null && Math.abs(x - W.rocketX) > 110) {
-      ctx.fillRect(x, W.groundY - 18, 4, 18);
-      ctx.fillRect(x - 12, W.groundY - 14, 28, 3);
+  if (!interior && th.backdrop !== "station" && th.backdrop !== "stalls") {
+    ctx.fillStyle = "#9a7c58";
+    for (let x = 40; x < W.worldEnd; x += 90) {
+      if (groundAt(x) !== null && Math.abs(x - W.rocketX) > 110) {
+        ctx.fillRect(x, W.groundY - 18, 4, 18);
+        ctx.fillRect(x - 12, W.groundY - 14, 28, 3);
+      }
     }
   }
 
-  for (let i = 0; i < 40; i++) {
-    const fx = 30 + i * 63;
-    if (groundAt(fx) === null) continue;
-    ctx.fillStyle = "#cf8fd6";
-    ctx.fillRect(fx, W.groundY - 6, 3, 3);
-    ctx.fillStyle = "#3e7d33";
-    ctx.fillRect(fx + 1, W.groundY - 3, 1, 3);
+  if (th.decor === "flowers") {
+    for (let i = 0; i < 40; i++) {
+      const fx = 30 + i * 63;
+      if (groundAt(fx) === null) continue;
+      ctx.fillStyle = "#cf8fd6";
+      ctx.fillRect(fx, W.groundY - 6, 3, 3);
+      ctx.fillStyle = "#3e7d33";
+      ctx.fillRect(fx + 1, W.groundY - 3, 1, 3);
+    }
+  } else if (th.decor === "crates") {
+    for (let i = 0; i < 14; i++) {
+      const cx2 = 150 + i * 180;
+      if (groundAt(cx2) === null) continue;
+      ctx.fillStyle = "#a67b4f";
+      ctx.fillRect(cx2, W.groundY - 12, 14, 12);
+      ctx.strokeStyle = "#7a5230";
+      ctx.strokeRect(cx2 + 0.5, W.groundY - 11.5, 13, 11);
+    }
   }
 
   for (const pl of W.platforms) {
@@ -525,7 +784,7 @@ function worldDraw() {
 
   for (const s of W.stars) {
     if (s.got) continue;
-    drawStar(ctx, s.x, s.y + Math.sin((t + s.x) / 18) * 3);
+    drawCollectible(ctx, s, s.y + Math.sin((t + s.x) / 18) * 3);
   }
 
   for (const g of W.gates) {
@@ -542,8 +801,24 @@ function worldDraw() {
 
   ctx.restore();
 
+  // lluvia con viento (mundo del eguraldia)
+  if (rainy) {
+    ctx.strokeStyle = "rgba(205,220,240,.45)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i < 46; i++) {
+      const rx = ((i * 53 + t * 6) % 500) - 10;
+      const ry = ((i * 97 + t * 11) % 280) - 10;
+      ctx.moveTo(rx, ry);
+      ctx.lineTo(rx - 4, ry + 11);
+    }
+    ctx.stroke();
+    ctx.fillStyle = "rgba(70,85,105,.12)";
+    ctx.fillRect(0, 0, 480, 270);
+  }
+
   // oscurecer la escena al caer la noche
-  if (pal.night > 0) {
+  if (pal.night > 0 && !interior && !rainy) {
     ctx.fillStyle = `rgba(18,20,60,${pal.night * 0.22})`;
     ctx.fillRect(0, 0, 480, 270);
   }
@@ -553,6 +828,61 @@ function worldDraw() {
   vg.addColorStop(1, "rgba(0,0,0,.14)");
   ctx.fillStyle = vg;
   ctx.fillRect(0, 0, 480, 270);
+}
+
+function drawCollectible(ctx, s, y) {
+  if (s.kind === "number") {
+    ctx.save();
+    ctx.translate(s.x, y);
+    ctx.fillStyle = "#ffc800";
+    ctx.strokeStyle = "#d9a300";
+    ctx.beginPath();
+    ctx.arc(0, 0, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#5c4632";
+    ctx.font = "bold 11px monospace";
+    ctx.textAlign = "center";
+    ctx.fillText(String(s.idx + 1), 0, 4);
+    ctx.font = "7px monospace";
+    ctx.fillStyle = "rgba(0,0,0,.6)";
+    ctx.fillText(s.label, 0, -14);
+    ctx.restore();
+    return;
+  }
+  if (s.kind === "color") {
+    ctx.save();
+    ctx.translate(s.x, y);
+    ctx.fillStyle = s.color.c;
+    ctx.beginPath();
+    ctx.arc(0, 0, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,.55)";
+    ctx.beginPath();
+    ctx.arc(-3, -3, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
+  if (s.kind === "pintxo") {
+    ctx.save();
+    ctx.translate(s.x, y);
+    ctx.fillStyle = "#d8a35a";      // pan
+    ctx.fillRect(-8, 0, 16, 6);
+    ctx.fillStyle = "#e04b3a";      // pimiento/gilda
+    ctx.fillRect(-5, -5, 10, 5);
+    ctx.fillStyle = "#3e8a36";      // aceituna
+    ctx.beginPath();
+    ctx.arc(0, -8, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#5c4632";    // palillo
+    ctx.beginPath();
+    ctx.moveTo(0, -12); ctx.lineTo(0, 4);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+  drawStar(ctx, s.x, y);
 }
 
 function drawStar(ctx, x, y) {

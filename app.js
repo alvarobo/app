@@ -2097,8 +2097,12 @@ function renderResults() {
       <div class="results">
         <div class="big-emoji">🚀</div>
         <h1 class="shine-text">¡Mundo ${wm.num} superado!</h1>
-        <p class="sub">Nao y Álvaro despegan bajo las estrellas — Gabon, Basajaun! 🌲<br>
-        ${next && r.firstTime ? `🔓 Se ha desbloqueado la <b>Unidad ${wIdx + 2} · ${esc(next.title)}</b>` : "¡Gran vuelo!"}</p>
+        <p class="sub">Nao y Álvaro despegan — ${esc(wm.boss || "el jefe")} garaituta!<br>
+        ${r.firstTime
+          ? (next
+            ? `🔓 Se ha desbloqueado la <b>Unidad ${wIdx + 2} · ${esc(next.title)}</b>`
+            : `🎓 ¡Todos los mundos superados! El <b>Examen A1</b> te espera`)
+          : "¡Gran vuelo!"}</p>
         <div class="world-stars-big">${"⭐".repeat(r.stars)}${"☆".repeat(Math.max(0, 5 - r.stars))}</div>
         <div class="result-cards">
           <div class="result-card xp"><div class="rc-title">Estrellas</div><div class="rc-value">${r.stars}/5</div></div>

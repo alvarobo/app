@@ -298,6 +298,8 @@ const COURSE = [
       { eu: "Ikurrina gorria zuria eta berdea da", es: "La ikurriña es roja blanca y verde" },
       { eu: "Nire autoa beltza da", es: "Mi coche es negro" },
       { eu: "Lore horiak politak dira", es: "Las flores amarillas son bonitas" },
+      { eu: "Zure alkandora morea da", es: "Tu camisa es morada" },
+      { eu: "Behia zuria eta beltza da", es: "La vaca es blanca y negra" },
     ],
   },
   {
@@ -996,44 +998,458 @@ const MNEMONICS = {
    ------------------------------------------------------------ */
 const WORLD_META = {
   agurrak: {
-    num: 1,
-    difficulty: 1,
-    boss: "Basajaun",
-    bossEmoji: "🌲",
+    num: 1, difficulty: 1, bossHp: 3,
+    theme: { backdrop: "sea", decor: "flowers", weather: "none", collectible: "star" },
+    boss: "Basajaun", bossEmoji: "🌲",
     bossIntro: "GRRR! Gaua dator… hiru erantzun zuzen edo ez zara pasako!",
     bossIntroEs: "¡Cae la noche… tres respuestas correctas o no pasarás!",
     gates: [
-      {
-        npc: "Artzaina", emoji: "🐑", skin: "#a06a48", cloth: "#3f6ea5", hat: "#5c4632",
+      { npc: "Artzaina", emoji: "🐑", skin: "#a06a48", cloth: "#3f6ea5", hat: "#5c4632",
         greet: "Egun on! Artzaina naiz.", greetEs: "¡Buenos días! Soy el pastor.",
         situations: [
           { q: "Es por la mañana y el pastor te saluda. ¿Qué le dices?", options: ["Egun on", "Gabon", "Agur", "Barkatu"], answer: "Egun on", speak: "Egun on!" },
           { q: "El pastor te pregunta «Zer moduz?». ¿Qué le respondes?", options: ["Ondo, eskerrik asko", "Bihar arte", "Ez horregatik", "Ongi etorri"], answer: "Ondo, eskerrik asko", speak: "Ondo, eskerrik asko" },
-        ],
-      },
-      {
-        npc: "Amona", emoji: "🌼", skin: "#c98d66", cloth: "#8a5fae", hat: "#d8d8d8",
+        ] },
+      { npc: "Amona", emoji: "🌼", skin: "#c98d66", cloth: "#8a5fae", hat: "#d8d8d8",
         greet: "Kaixo, maitea! Pintxo bat nahi?", greetEs: "¡Hola, querida! ¿Quieres un pintxo?",
         situations: [
           { q: "La amona te regala un pintxo. ¿Qué le dices?", options: ["Eskerrik asko", "Barkatu", "Ez", "Agur"], answer: "Eskerrik asko", speak: "Eskerrik asko!" },
           { q: "Le das las gracias y ella te contesta…", options: ["Ez horregatik", "Gero arte", "Egun on", "Mesedez"], answer: "Ez horregatik", speak: "Ez horregatik" },
-        ],
-      },
-      {
-        npc: "Tabernaria", emoji: "🍷", skin: "#b07850", cloth: "#824e3d", hat: "#2e2e38",
+        ] },
+      { npc: "Tabernaria", emoji: "🍷", skin: "#b07850", cloth: "#824e3d", hat: "#2e2e38",
         greet: "Arratsalde on! Sartu, sartu!", greetEs: "¡Buenas tardes! ¡Pasa, pasa!",
         situations: [
           { q: "Ya es media tarde y entras en la taberna. ¿Cómo saludas?", options: ["Arratsalde on", "Egun on", "Gabon", "Kaixo eta agur"], answer: "Arratsalde on", speak: "Arratsalde on!" },
           { q: "Al salir tropiezas con una silla. ¿Qué dices?", options: ["Barkatu", "Ez horregatik", "Bai", "Gero arte"], answer: "Barkatu", speak: "Barkatu!" },
           { q: "Te despides: volverás mañana. ¿Qué dices?", options: ["Bihar arte", "Ongi etorri", "Mesedez", "Egun on"], answer: "Bihar arte", speak: "Bihar arte!" },
-        ],
-      },
+        ] },
     ],
-    friend: {
-      name: "Alvaro", label: "Álvaro",
+    friend: { name: "Alvaro", label: "Álvaro",
       greet: "Kaixo, Nao! Ni Alvaro naiz. Gabon! Bagoaz hurrengo mundura?",
-      greetEs: "¡Hola, Nao! Soy Álvaro. ¡Buenas noches! ¿Nos vamos al siguiente mundo?",
-    },
+      greetEs: "¡Hola, Nao! Soy Álvaro. ¡Buenas noches! ¿Nos vamos al siguiente mundo?" },
+  },
+
+  aurkezpenak: {
+    num: 2, difficulty: 1, bossHp: 3,
+    theme: { backdrop: "houses", decor: "flowers", weather: "none", collectible: "star" },
+    boss: "Galtzagorri", bossEmoji: "👺",
+    bossIntro: "Kaixo! Nor zara ZU? Erantzun ondo edo ez zara pasako!",
+    bossIntroEs: "¡Hola! ¿Quién eres TÚ? ¡Responde bien o no pasarás!",
+    gates: [
+      { npc: "Maite", emoji: "👧", skin: "#c98d66", cloth: "#d96fa8", hat: "#4a3220",
+        greet: "Kaixo! Nola duzu izena?", greetEs: "¡Hola! ¿Cómo te llamas?",
+        situations: [
+          { q: "Una chica te pregunta tu nombre. ¿Qué respondes?", options: ["Nire izena Nao da", "Ondo, eskerrik asko", "Ez horregatik", "Gero arte"], answer: "Nire izena Nao da", speak: "Nire izena Nao da" },
+          { q: "Ahora quieres saber SU nombre. ¿Qué le preguntas?", options: ["Nola duzu izena?", "Nongoa zara?", "Zer ordu da?", "Zenbat balio du?"], answer: "Nola duzu izena?", speak: "Nola duzu izena?" },
+        ] },
+      { npc: "Jon", emoji: "👦", skin: "#b07850", cloth: "#3f6ea5", hat: "#2a1e14",
+        greet: "Aupa! Nongoa zara, Nao?", greetEs: "¡Aúpa! ¿De dónde eres, Nao?",
+        situations: [
+          { q: "Jon te pregunta de dónde eres (tú eres de Donostia).", options: ["Donostiakoa naiz", "Ikaslea naiz", "Ondo nago", "Hamar urte ditut"], answer: "Donostiakoa naiz", speak: "Donostiakoa naiz" },
+          { q: "Jon es de Bilbao. ¿Cómo lo dice él?", options: ["Ni Bilbokoa naiz", "Ni Bilbon nago", "Bilbo polita da", "Ni Bilbo naiz"], answer: "Ni Bilbokoa naiz", speak: "Ni Bilbokoa naiz" },
+        ] },
+      { npc: "Irakaslea", emoji: "👩‍🏫", skin: "#c98d66", cloth: "#5b7596", hat: "#6a4a2a",
+        greet: "Egun on! Ikaslea zara?", greetEs: "¡Buenos días! ¿Eres estudiante?",
+        situations: [
+          { q: "La profesora pregunta si eres estudiante. Tú aprendes euskera…", options: ["Bai, euskara ikasten dut", "Ez horregatik", "Arratsalde on", "Agur"], answer: "Bai, euskara ikasten dut", speak: "Bai, euskara ikasten dut" },
+          { q: "Te presenta a su amigo: «Bera nire ___ da»", options: ["laguna", "izena", "abizena", "eskola"], answer: "laguna", speak: "Bera nire laguna da" },
+        ] },
+    ],
+  },
+
+  zenbakiak: {
+    num: 3, difficulty: 1, bossHp: 3,
+    theme: { backdrop: "stalls", decor: "crates", weather: "none", collectible: "number" },
+    boss: "Tartalo", bossEmoji: "👁️",
+    bossIntro: "GRRR! Nire ardiak zenbatu behar ditut… lagundu edo ez zara pasako!",
+    bossIntroEs: "¡Tengo que contar mis ovejas… ayúdame o no pasarás!",
+    gates: [
+      { npc: "Saltzailea", emoji: "🧺", skin: "#b07850", cloth: "#3e8a36", hat: "#d8d8d8",
+        greet: "Egun on! Zenbat sagar nahi dituzu?", greetEs: "¡Buenos días! ¿Cuántas manzanas quieres?",
+        situations: [
+          { q: "Quieres TRES manzanas. ¿Qué le dices?", options: ["Hiru", "Bost", "Bat", "Zortzi"], answer: "Hiru", speak: "Hiru sagar, mesedez" },
+          { q: "Te cobra: «___ euro dira» (son DIEZ euros)", options: ["Hamar", "Hiru", "Hogei", "Bi"], answer: "Hamar", speak: "Hamar euro dira" },
+        ] },
+      { npc: "Haurra", emoji: "🎈", skin: "#c98d66", cloth: "#ffc800", hat: "#4a3220",
+        greet: "Kaixo! Zenbatzen ari naiz: bat, bi… lau?", greetEs: "¡Hola! Estoy contando: uno, dos… ¿cuatro?",
+        situations: [
+          { q: "Al niño se le ha olvidado un número: «bat, bi, ___, lau»", options: ["hiru", "bost", "sei", "zero"], answer: "hiru", speak: "Bat, bi, hiru, lau!" },
+          { q: "¿Cuánto es «bi eta hiru»?", options: ["bost", "lau", "sei", "zazpi"], answer: "bost", speak: "Bi eta hiru bost dira" },
+        ] },
+      { npc: "Aitona", emoji: "🎩", skin: "#c98d66", cloth: "#5c4632", hat: "#d8d8d8",
+        greet: "Kaixo! Zenbat urte dituzu?", greetEs: "¡Hola! ¿Cuántos años tienes?",
+        situations: [
+          { q: "Tienes VEINTE años. ¿Qué respondes?", options: ["Hogei urte ditut", "Hamar euro dira", "Ehun urte ditu", "Bost naiz"], answer: "Hogei urte ditut", speak: "Hogei urte ditut" },
+          { q: "El aitona tiene OCHENTA años: «___ urte ditut»", options: ["laurogei", "berrogei", "hirurogei", "hogei"], answer: "laurogei", speak: "Laurogei urte ditut" },
+        ] },
+    ],
+  },
+
+  familia: {
+    num: 4, difficulty: 2, bossHp: 3,
+    theme: { backdrop: "sea", decor: "flowers", weather: "none", collectible: "star" },
+    boss: "Lamia", bossEmoji: "🧜‍♀️",
+    bossIntro: "Ssss… ibaia nirea da. Zure familia ezagutu nahi dut!",
+    bossIntroEs: "Sss… el río es mío. ¡Quiero conocer a tu familia!",
+    gates: [
+      { npc: "Ama", emoji: "👩", skin: "#c98d66", cloth: "#8a5fae", hat: "#4a3220",
+        greet: "Kaixo! Familia argazkia atera dugu.", greetEs: "¡Hola! Nos hemos hecho la foto de familia.",
+        situations: [
+          { q: "Señalas a tu madre en la foto: «Hau nire ___ da»", options: ["ama", "aita", "osaba", "semea"], answer: "ama", speak: "Hau nire ama da" },
+          { q: "«Nor da hau?» — señala a tu padre.", options: ["Nire aita da", "Nire amona da", "Nire alaba da", "Nire izeba da"], answer: "Nire aita da", speak: "Nire aita da" },
+        ] },
+      { npc: "Aitona", emoji: "👴", skin: "#c98d66", cloth: "#5c4632", hat: "#d8d8d8",
+        greet: "Egun on! Gure baserria handia da.", greetEs: "¡Buenos días! Nuestro caserío es grande.",
+        situations: [
+          { q: "El padre de tu madre es tu…", options: ["aitona", "amona", "anaia", "osaba"], answer: "aitona", speak: "Nire aitona da" },
+          { q: "Los abuelos viven en Bilbao: «Aitona eta amona Bilbon ___ dira»", options: ["bizi", "jaten", "joan", "polita"], answer: "bizi", speak: "Aitona eta amona Bilbon bizi dira" },
+        ] },
+      { npc: "Osaba", emoji: "🧔", skin: "#b07850", cloth: "#824e3d", hat: "#2a1e14",
+        greet: "Aupa! Ni zure osaba naiz!", greetEs: "¡Aúpa! ¡Yo soy tu tío!",
+        situations: [
+          { q: "Tienes dos hermanos: «Bi ___ ditut»", options: ["anaia", "ama", "aitona", "alaba"], answer: "anaia", speak: "Bi anaia ditut" },
+          { q: "La hermana de tu padre es tu…", options: ["izeba", "amona", "ahizpa", "ama"], answer: "izeba", speak: "Nire izeba da" },
+        ] },
+    ],
+  },
+
+  deskribapenak: {
+    num: 5, difficulty: 2, bossHp: 3,
+    theme: { backdrop: "mountain", decor: "flowers", weather: "none", collectible: "star" },
+    boss: "Sorgina", bossEmoji: "🧙",
+    bossIntro: "Ji ji ji! Deskribatu ondo… edo untxi bihurtuko zaitut!",
+    bossIntroEs: "¡Ji ji ji! Describe bien… ¡o te convierto en conejo!",
+    gates: [
+      { npc: "Neska txikia", emoji: "🧒", skin: "#c98d66", cloth: "#d96fa8", hat: "#4a3220",
+        greet: "Kaixo! Nire txakurra ikusi duzu?", greetEs: "¡Hola! ¿Has visto a mi perro?",
+        situations: [
+          { q: "Su perro es GRANDE: «Txakurra ___ da»", options: ["handia", "txikia", "berria", "hotza"], answer: "handia", speak: "Txakurra handia da" },
+          { q: "Y además es bueno: «handia eta ___ da»", options: ["ona", "txarra", "itsusia", "zaharra"], answer: "ona", speak: "Txakurra handia eta ona da" },
+        ] },
+      { npc: "Gizon altua", emoji: "🕴️", skin: "#b07850", cloth: "#2e2e38", hat: "#2a1e14",
+        greet: "Arratsalde on! Etxe berria erosi dut.", greetEs: "¡Buenas tardes! He comprado una casa nueva.",
+        situations: [
+          { q: "Esta casa es nueva: «Etxe ___ berria da»", options: ["hau", "hori", "hura", "haiek"], answer: "hau", speak: "Etxe hau berria da" },
+          { q: "Aquel monte es bonito: «Mendi ___ polita da»", options: ["hura", "hau", "hauek", "honek"], answer: "hura", speak: "Mendi hura polita da" },
+        ] },
+      { npc: "Artista", emoji: "🎭", skin: "#c98d66", cloth: "#8a5fae", hat: "#e04b3a",
+        greet: "Kaixo! Jendea deskribatzea gustatzen zait.", greetEs: "¡Hola! Me gusta describir a la gente.",
+        situations: [
+          { q: "Ese chico es alegre: «Mutil hori ___ da»", options: ["alaia", "zaharra", "garestia", "hotza"], answer: "alaia", speak: "Mutil hori alaia da" },
+          { q: "Lo contrario de «handia» es…", options: ["txikia", "polita", "berria", "ona"], answer: "txikia", speak: "Handia eta txikia" },
+        ] },
+    ],
+  },
+
+  koloreak: {
+    num: 6, difficulty: 2, bossHp: 3,
+    theme: { backdrop: "sea", decor: "flowers", weather: "none", collectible: "color" },
+    boss: "Herensuge Txikia", bossEmoji: "🐉",
+    bossIntro: "Sssuak kolorez aldatzen dira! Asmatu nire koloreak!",
+    bossIntroEs: "¡Mis llamas cambian de color! ¡Acierta mis colores!",
+    gates: [
+      { npc: "Margolaria", emoji: "🎨", skin: "#c98d66", cloth: "#3f6ea5", hat: "#e04b3a",
+        greet: "Kaixo! Zerua margotzen ari naiz.", greetEs: "¡Hola! Estoy pintando el cielo.",
+        situations: [
+          { q: "El pintor pinta el cielo. ¿De qué color?", options: ["urdina", "gorria", "beltza", "marroia"], answer: "urdina", speak: "Zerua urdina da" },
+          { q: "Ahora pinta la ikurriña: roja, blanca y…", options: ["berdea", "horia", "morea", "grisa"], answer: "berdea", speak: "Gorria, zuria eta berdea" },
+        ] },
+      { npc: "Lorezaina", emoji: "🌷", skin: "#b07850", cloth: "#3e8a36", hat: "#d8c49a",
+        greet: "Egun on! Nire loreak ikusi!", greetEs: "¡Buenos días! ¡Mira mis flores!",
+        situations: [
+          { q: "Las flores amarillas son bonitas: «Lore ___ politak dira»", options: ["horiak", "horia", "hori", "beltzak"], answer: "horiak", speak: "Lore horiak politak dira" },
+          { q: "La vaca del prado es blanca y negra: «___ eta beltza»", options: ["zuria", "gorria", "urdina", "arrosa"], answer: "zuria", speak: "Behia zuria eta beltza da" },
+        ] },
+      { npc: "Zalea", emoji: "⚽", skin: "#c98d66", cloth: "#3f6ea5", hat: "#2e2e38",
+        greet: "Aupa Erreala! Gure koloreak…", greetEs: "¡Aúpa la Real! Nuestros colores…",
+        situations: [
+          { q: "Los de la Real son «txuri-___» (blanquiazules)", options: ["urdin", "gorri", "berde", "beltz"], answer: "urdin", speak: "Txuri-urdinak!" },
+          { q: "Tu coche es negro: «Nire autoa ___ da»", options: ["beltza", "zuria", "horia", "morea"], answer: "beltza", speak: "Nire autoa beltza da" },
+        ] },
+    ],
+  },
+
+  etxea: {
+    num: 7, difficulty: 3, bossHp: 3,
+    theme: { backdrop: "room", decor: "none", weather: "none", collectible: "star" },
+    boss: "Iratxoa", bossEmoji: "🧚",
+    bossIntro: "Ji ji! Etxeko gauzak ezkutatu ditut! Aurkitu nahi?",
+    bossIntroEs: "¡Ji ji! ¡He escondido las cosas de la casa! ¿Quieres encontrarlas?",
+    gates: [
+      { npc: "Ama", emoji: "🍳", skin: "#c98d66", cloth: "#8a5fae", hat: "#4a3220",
+        greet: "Kaixo! Sukaldean nago!", greetEs: "¡Hola! ¡Estoy en la cocina!",
+        situations: [
+          { q: "¿Dónde está ella? «___ nago»", options: ["Sukaldean", "Sukaldea", "Sukaldera", "Sukaldetik"], answer: "Sukaldean", speak: "Sukaldean nago" },
+          { q: "Buscas el baño. ¿Qué preguntas?", options: ["Non dago komuna?", "Zer da komuna?", "Nor da komuna?", "Zenbat komuna?"], answer: "Non dago komuna?", speak: "Non dago komuna?" },
+        ] },
+      { npc: "Aita", emoji: "🔧", skin: "#b07850", cloth: "#3f6ea5", hat: "#2a1e14",
+        greet: "Aupa! Atea konpontzen ari naiz.", greetEs: "¡Aúpa! Estoy arreglando la puerta.",
+        situations: [
+          { q: "La llave está en la puerta: «Giltza ___ dago»", options: ["atean", "atea", "atera", "atetik"], answer: "atean", speak: "Giltza atean dago" },
+          { q: "La mesa está en el salón: «Mahaia ___ dago»", options: ["egongelan", "egongela", "egongelara", "logela"], answer: "egongelan", speak: "Mahaia egongelan dago" },
+        ] },
+      { npc: "Ahizpa", emoji: "🛏️", skin: "#c98d66", cloth: "#d96fa8", hat: "#4a3220",
+        greet: "Kaixo! Nire logela berria ikusi!", greetEs: "¡Hola! ¡Mira mi dormitorio nuevo!",
+        situations: [
+          { q: "El cuarto de dormir es el…", options: ["logela", "sukaldea", "komuna", "lorategia"], answer: "logela", speak: "Nire logela" },
+          { q: "Tu casa tiene cuatro dormitorios: «Nire etxeak lau logela ___»", options: ["ditu", "du", "dira", "dago"], answer: "ditu", speak: "Nire etxeak lau logela ditu" },
+        ] },
+    ],
+  },
+
+  egunerokoa: {
+    num: 8, difficulty: 3, bossHp: 3,
+    theme: { backdrop: "houses", decor: "flowers", weather: "none", collectible: "star" },
+    boss: "Inguma", bossEmoji: "😴",
+    bossIntro: "Zzz… ni gauez nator… zure eguna kontatu edo ez duzu lorik egingo!",
+    bossIntroEs: "Zzz… yo llego de noche… ¡cuéntame tu día o no dormirás!",
+    gates: [
+      { npc: "Okina", emoji: "🥖", skin: "#b07850", cloth: "#d8c49a", hat: "#f0e9d6",
+        greet: "Egun on! Ogia berri-berria!", greetEs: "¡Buenos días! ¡Pan recién hecho!",
+        situations: [
+          { q: "Es temprano: te has levantado a las ocho. «Zortzietan ___ naiz»", options: ["jaikitzen", "jaiki", "jaikiko", "gosaltzen"], answer: "jaikitzen", speak: "Zortzietan jaikitzen naiz" },
+          { q: "Y por la mañana desayunas: «Goizean ___ dut»", options: ["gosaltzen", "afaltzen", "bazkaltzen", "lo egiten"], answer: "gosaltzen", speak: "Goizean gosaltzen dut" },
+        ] },
+      { npc: "Kirolaria", emoji: "🏃", skin: "#c98d66", cloth: "#e04b3a", hat: "#2a1e14",
+        greet: "Aupa! Egunero korrika egiten dut!", greetEs: "¡Aúpa! ¡Corro todos los días!",
+        situations: [
+          { q: "Tú estudias euskera a diario: «___ euskara ikasten dut»", options: ["Egunero", "Atzo", "Bihar", "Gauean"], answer: "Egunero", speak: "Egunero euskara ikasten dut" },
+          { q: "Después de cenar, por la noche lees: «Gauean liburu bat ___ dut»", options: ["irakurtzen", "idazten", "jaten", "edaten"], answer: "irakurtzen", speak: "Gauean liburu bat irakurtzen dut" },
+        ] },
+      { npc: "Ikaslea", emoji: "📚", skin: "#c98d66", cloth: "#5b7596", hat: "#4a3220",
+        greet: "Kaixo! Ikasten ari naiz…", greetEs: "¡Hola! Estoy estudiando…",
+        situations: [
+          { q: "A mediodía toca comer: la comida del mediodía es…", options: ["bazkaldu", "gosaldu", "afaldu", "dutxatu"], answer: "bazkaldu", speak: "Bazkaldu" },
+          { q: "Duermes bien: «Ondo ___ egiten dut»", options: ["lo", "lan", "hitz", "igeri"], answer: "lo", speak: "Ondo lo egiten dut" },
+        ] },
+    ],
+  },
+
+  ordua: {
+    num: 9, difficulty: 3, bossHp: 4,
+    theme: { backdrop: "houses", decor: "none", weather: "none", collectible: "star" },
+    boss: "Gaueko", bossEmoji: "🌙",
+    bossIntro: "Gaua nirea da! Ordua ondo esan… edo nirekin geratuko zara!",
+    bossIntroEs: "¡La noche es mía! Di bien la hora… ¡o te quedarás conmigo!",
+    gates: [
+      { npc: "Erlojugilea", emoji: "⏰", skin: "#c98d66", cloth: "#5c4632", hat: "#d8d8d8",
+        greet: "Kaixo! Zer ordu da?", greetEs: "¡Hola! ¿Qué hora es?",
+        situations: [
+          { q: "El reloj marca las TRES. «___ dira»", options: ["Hirurak", "Hiru", "Hirutan", "Hiruak eta erdi"], answer: "Hirurak", speak: "Hirurak dira" },
+          { q: "Ahora es la UNA: «Ordu ___ da»", options: ["bata", "bat", "batak", "batean"], answer: "bata", speak: "Ordu bata da" },
+        ] },
+      { npc: "Umea", emoji: "🎒", skin: "#c98d66", cloth: "#ffc800", hat: "#4a3220",
+        greet: "Kaixo! Gaur zer egun da?", greetEs: "¡Hola! ¿Qué día es hoy?",
+        situations: [
+          { q: "Hoy es lunes: «Gaur ___ da»", options: ["astelehena", "igandea", "larunbata", "atzo"], answer: "astelehena", speak: "Gaur astelehena da" },
+          { q: "Mañana es sábado: «___ larunbata da»", options: ["Bihar", "Gaur", "Atzo", "Gauean"], answer: "Bihar", speak: "Bihar larunbata da" },
+        ] },
+      { npc: "Amona", emoji: "🧶", skin: "#c98d66", cloth: "#8a5fae", hat: "#d8d8d8",
+        greet: "Kaixo, polita! Asteburua dator!", greetEs: "¡Hola, bonita! ¡Llega el fin de semana!",
+        situations: [
+          { q: "El fin de semana vas a la playa: «___ hondartzara noa»", options: ["Asteburuan", "Astelehena", "Ordua", "Atzo"], answer: "Asteburuan", speak: "Asteburuan hondartzara noa" },
+          { q: "Son las tres y media: «Hiru eta ___ dira»", options: ["erdiak", "erdia", "laurden", "bostak"], answer: "erdiak", speak: "Hiru eta erdiak dira" },
+        ] },
+    ],
+  },
+
+  janaria: {
+    num: 10, difficulty: 4, bossHp: 4,
+    theme: { backdrop: "stalls", decor: "crates", weather: "none", collectible: "pintxo" },
+    boss: "Sugaar", bossEmoji: "🐍",
+    bossIntro: "Ssss… gose naiz! Janaria ondo eskatu edo dena jango dut!",
+    bossIntroEs: "Sss… ¡tengo hambre! ¡Pide bien la comida o me lo comeré todo!",
+    gates: [
+      { npc: "Zerbitzaria", emoji: "☕", skin: "#c98d66", cloth: "#2e2e38", hat: "#f0e9d6",
+        greet: "Egun on! Zer nahi duzu?", greetEs: "¡Buenos días! ¿Qué quieres?",
+        situations: [
+          { q: "Pides un café con leche, con educación:", options: ["Kafesne bat, mesedez", "Kafesnea non dago?", "Kafesne garestia", "Ez dut kafesnerik"], answer: "Kafesne bat, mesedez", speak: "Kafesne bat, mesedez" },
+          { q: "Y de comer, un pintxo: «Pintxo bat ___ dut»", options: ["nahi", "jaten", "balio", "edaten"], answer: "nahi", speak: "Pintxo bat nahi dut" },
+        ] },
+      { npc: "Arrandegia", emoji: "🐟", skin: "#b07850", cloth: "#3f6ea5", hat: "#d8d8d8",
+        greet: "Kaixo! Arrain freskoa daukagu!", greetEs: "¡Hola! ¡Tenemos pescado fresco!",
+        situations: [
+          { q: "En euskera, el pescado es…", options: ["arraina", "haragia", "ogia", "gazta"], answer: "arraina", speak: "Arraina" },
+          { q: "Comes pan y queso: «Ogia eta gazta ___ ditut»", options: ["jaten", "edaten", "nahi", "hartzen"], answer: "jaten", speak: "Ogia eta gazta jaten ditut" },
+        ] },
+      { npc: "Sukaldaria", emoji: "👨‍🍳", skin: "#c98d66", cloth: "#f0e9d6", hat: "#f0e9d6",
+        greet: "Kaixo! Zer nahi duzu jateko?", greetEs: "¡Hola! ¿Qué quieres para comer?",
+        situations: [
+          { q: "Tienes sed y pides agua. Bebes agua: «Ura ___ dut»", options: ["edaten", "jaten", "nahi al", "balio"], answer: "edaten", speak: "Ura edaten dut" },
+          { q: "El desayuno está muy bueno: «___ oso ona da»", options: ["Gosaria", "Afaria", "Ogia", "Ardoa"], answer: "Gosaria", speak: "Gosaria oso ona da" },
+        ] },
+    ],
+  },
+
+  erosketak: {
+    num: 11, difficulty: 4, bossHp: 4,
+    theme: { backdrop: "stalls", decor: "crates", weather: "none", collectible: "star" },
+    boss: "Basandere", bossEmoji: "🌳",
+    bossIntro: "Basoko denda nirea da! Ondo erosi… edo hutsik aterako zara!",
+    bossIntroEs: "¡La tienda del bosque es mía! Compra bien… ¡o saldrás con las manos vacías!",
+    gates: [
+      { npc: "Dendaria", emoji: "🛍️", skin: "#c98d66", cloth: "#8a5fae", hat: "#4a3220",
+        greet: "Kaixo! Alkandora berriak ditugu!", greetEs: "¡Hola! ¡Tenemos camisas nuevas!",
+        situations: [
+          { q: "Quieres saber el precio. ¿Qué preguntas?", options: ["Zenbat balio du?", "Non dago?", "Nor da?", "Zer ordu da?"], answer: "Zenbat balio du?", speak: "Zenbat balio du?" },
+          { q: "Te responde: cuesta diez euros. «Hamar euro ___ du»", options: ["balio", "nahi", "jaten", "bizi"], answer: "balio", speak: "Hamar euro balio du" },
+        ] },
+      { npc: "Bezeroa", emoji: "👛", skin: "#b07850", cloth: "#d96fa8", hat: "#d8d8d8",
+        greet: "Uf! Dena garestia dago!", greetEs: "¡Uf! ¡Está todo caro!",
+        situations: [
+          { q: "Esa camisa cuesta 80€… «Oso ___ da!»", options: ["garestia", "merkea", "polita", "berria"], answer: "garestia", speak: "Oso garestia da!" },
+          { q: "En el mercado todo es barato: lo contrario de garestia es…", options: ["merkea", "handia", "zaharra", "txarra"], answer: "merkea", speak: "Merkea" },
+        ] },
+      { npc: "Saltzailea", emoji: "👟", skin: "#c98d66", cloth: "#3f6ea5", hat: "#2a1e14",
+        greet: "Aupa! Oinetako ederrak!", greetEs: "¡Aúpa! ¡Buen calzado!",
+        situations: [
+          { q: "Quieres una camisa azul: «Alkandora ___ bat nahi dut»", options: ["urdin", "urdina", "urdinak", "urdinek"], answer: "urdin", speak: "Alkandora urdin bat nahi dut" },
+          { q: "Vas al mercado: «___ noa»", options: ["Merkatura", "Merkatuan", "Merkatutik", "Merkatua"], answer: "Merkatura", speak: "Merkatura noa" },
+        ] },
+    ],
+  },
+
+  herria: {
+    num: 12, difficulty: 4, bossHp: 4,
+    theme: { backdrop: "houses", decor: "flowers", weather: "none", collectible: "star" },
+    boss: "Jentila", bossEmoji: "🗿",
+    bossIntro: "GRAUNK! Harri hau nirea da! Herria ezagutzen duzu?",
+    bossIntroEs: "¡GRAUNK! ¡Esta piedra es mía! ¿Conoces el pueblo?",
+    gates: [
+      { npc: "Turista", emoji: "📷", skin: "#e0b18e", cloth: "#e04b3a", hat: "#f0e9d6",
+        greet: "Barkatu… galduta nago!", greetEs: "Perdona… ¡estoy perdido!",
+        situations: [
+          { q: "El turista busca la estación. ¿Qué pregunta?", options: ["Non dago geltokia?", "Zenbat balio du?", "Nola duzu izena?", "Zer ordu da?"], answer: "Non dago geltokia?", speak: "Non dago geltokia?" },
+          { q: "Le indicas: recto y luego a la izquierda: «Zuzen eta gero ___»", options: ["ezkerrera", "ezkerra", "eskuina", "gertu"], answer: "ezkerrera", speak: "Zuzen eta gero ezkerrera" },
+        ] },
+      { npc: "Udaltzaina", emoji: "👮", skin: "#b07850", cloth: "#2e3e5c", hat: "#2e3e5c",
+        greet: "Egun on! Laguntzarik behar?", greetEs: "¡Buenos días! ¿Necesitas ayuda?",
+        situations: [
+          { q: "La playa está cerca: «Hondartza ___ dago»", options: ["gertu", "urrun", "hemen ez", "atzo"], answer: "gertu", speak: "Hondartza gertu dago" },
+          { q: "Hay un buen restaurante aquí: «Jatetxe on bat dago ___»", options: ["hemen", "han goian", "atzo", "bihar"], answer: "hemen", speak: "Jatetxe on bat dago hemen" },
+        ] },
+      { npc: "Amona", emoji: "🌂", skin: "#c98d66", cloth: "#8a5fae", hat: "#d8d8d8",
+        greet: "Kaixo! Gure plaza ederra da, ezta?", greetEs: "¡Hola! Nuestra plaza es preciosa, ¿verdad?",
+        situations: [
+          { q: "La plaza está en el centro del pueblo: «Plaza herriko ___ dago»", options: ["erdian", "erdia", "erdira", "gainean"], answer: "erdian", speak: "Plaza herriko erdian dago" },
+          { q: "El bar del pueblo, en euskera:", options: ["taberna", "eliza", "eskola", "geltokia"], answer: "taberna", speak: "Taberna" },
+        ] },
+    ],
+  },
+
+  garraioa: {
+    num: 13, difficulty: 5, bossHp: 4,
+    theme: { backdrop: "station", decor: "none", weather: "none", collectible: "star" },
+    boss: "Olarro", bossEmoji: "🐙",
+    bossIntro: "Blub! Itsasoa nirea da! Ondo bidaiatu… edo hondora zoaz!",
+    bossIntroEs: "¡Blub! ¡El mar es mío! Viaja bien… ¡o te vas al fondo!",
+    gates: [
+      { npc: "Txarteldegia", emoji: "🎫", skin: "#c98d66", cloth: "#3f6ea5", hat: "#3f6ea5",
+        greet: "Egun on! Nora zoaz?", greetEs: "¡Buenos días! ¿Adónde vas?",
+        situations: [
+          { q: "Pides un billete con educación:", options: ["Txartel bat, mesedez", "Txartela non dago?", "Txartel garestia!", "Ez dut txartelik nahi"], answer: "Txartel bat, mesedez", speak: "Txartel bat, mesedez" },
+          { q: "El tren sale a las ocho: «Trena ___ ateratzen da»", options: ["zortzietan", "zortzi", "zortzira", "zortziak"], answer: "zortzietan", speak: "Trena zortzietan ateratzen da" },
+        ] },
+      { npc: "Gidaria", emoji: "🚌", skin: "#b07850", cloth: "#3e8a36", hat: "#2a1e14",
+        greet: "Aupa! Autobusa martxan!", greetEs: "¡Aúpa! ¡El autobús en marcha!",
+        situations: [
+          { q: "Vas al trabajo en autobús: «___ noa lanera»", options: ["Autobusez", "Autobusa", "Autobusean bizi", "Autobusera"], answer: "Autobusez", speak: "Autobusez noa lanera" },
+          { q: "A la escuela vas a pie: «___ noa eskolara»", options: ["Oinez", "Autoz", "Trenez", "Hegazkinez"], answer: "Oinez", speak: "Oinez noa eskolara" },
+        ] },
+      { npc: "Marinela", emoji: "⚓", skin: "#b07850", cloth: "#2e3e5c", hat: "#f0e9d6",
+        greet: "Kaixo! Itsasontzia prest dago!", greetEs: "¡Hola! ¡El barco está listo!",
+        situations: [
+          { q: "La máquina que vuela es el…", options: ["hegazkina", "itsasontzia", "trena", "bizikleta"], answer: "hegazkina", speak: "Hegazkina" },
+          { q: "El viaje es largo: «___ luzea da»", options: ["Bidaia", "Txartela", "Geltokia", "Autoa"], answer: "Bidaia", speak: "Bidaia luzea da" },
+        ] },
+    ],
+  },
+
+  eguraldia: {
+    num: 14, difficulty: 5, bossHp: 4,
+    theme: { backdrop: "mountain", decor: "none", weather: "rain", collectible: "star" },
+    boss: "Mari", bossEmoji: "⛈️",
+    bossIntro: "Ni Mari naiz, ekaitzen anderea! Eguraldia ezagutu… edo tximista!",
+    bossIntroEs: "¡Soy Mari, la señora de las tormentas! Conoce el tiempo… ¡o rayo!",
+    gates: [
+      { npc: "Baserritarra", emoji: "🌾", skin: "#b07850", cloth: "#5c4632", hat: "#2a1e14",
+        greet: "Kaixo! Hau eguraldia, hau!", greetEs: "¡Hola! ¡Vaya tiempo!",
+        situations: [
+          { q: "Está lloviendo (como siempre): «Euria ari ___»", options: ["du", "da", "dago", "dira"], answer: "du", speak: "Euria ari du" },
+          { q: "El sirimiri no para… la lluvia, en euskera:", options: ["euria", "elurra", "haizea", "eguzkia"], answer: "euria", speak: "Euria" },
+        ] },
+      { npc: "Surflaria", emoji: "🏄", skin: "#c98d66", cloth: "#00b8a9", hat: "#4a3220",
+        greet: "Aupa! Olatu onak gaur!", greetEs: "¡Aúpa! ¡Buenas olas hoy!",
+        situations: [
+          { q: "¡Hoy hace viento!: «Haizea ___»", options: ["dabil", "da", "jaten du", "bizi da"], answer: "dabil", speak: "Haizea dabil" },
+          { q: "Mañana saldrá el sol: «Gaur euria, bihar ___»", options: ["eguzkia", "elurra", "hodeia", "negua"], answer: "eguzkia", speak: "Bihar eguzkia" },
+        ] },
+      { npc: "Aitona", emoji: "☔", skin: "#c98d66", cloth: "#5c4632", hat: "#d8d8d8",
+        greet: "Brrr! Hotz egiten du gaur!", greetEs: "¡Brrr! ¡Hace frío hoy!",
+        situations: [
+          { q: "En invierno hace mucho frío: «Neguan ___ handia egiten du»", options: ["hotz", "bero", "euri", "eguzki"], answer: "hotz", speak: "Neguan hotz handia egiten du" },
+          { q: "La estación fría del año es…", options: ["negua", "uda", "udaberria", "udazkena"], answer: "negua", speak: "Negua" },
+        ] },
+    ],
+  },
+
+  aisialdia: {
+    num: 15, difficulty: 5, bossHp: 4,
+    theme: { backdrop: "forest", decor: "flowers", weather: "none", collectible: "star" },
+    boss: "Akerbeltz", bossEmoji: "🐐",
+    bossIntro: "Beee! Jai gauean dantzatu behar duzu nirekin… edo erantzun ondo!",
+    bossIntroEs: "¡Beee! Tendrás que bailar conmigo en la fiesta… ¡o responder bien!",
+    gates: [
+      { npc: "Pilotaria", emoji: "🥎", skin: "#c98d66", cloth: "#f0e9d6", hat: "#e04b3a",
+        greet: "Aupa! Frontoira zatoz?", greetEs: "¡Aúpa! ¿Vienes al frontón?",
+        situations: [
+          { q: "Juegas al fútbol: «Futbolean ___ dut»", options: ["jokatzen", "jolasten naiz", "jaten", "abesten"], answer: "jokatzen", speak: "Futbolean jokatzen dut" },
+          { q: "El deporte vasco de la pared y la pelota es…", options: ["pilota", "futbola", "dantza", "musika"], answer: "pilota", speak: "Euskal pilota" },
+        ] },
+      { npc: "Musikaria", emoji: "🎵", skin: "#b07850", cloth: "#8a5fae", hat: "#2a1e14",
+        greet: "Kaixo! Kontzertua gaur gauean!", greetEs: "¡Hola! ¡Concierto esta noche!",
+        situations: [
+          { q: "Te gusta la música: «Musika gustatzen ___»", options: ["zait", "zaizkit", "dut", "naiz"], answer: "zait", speak: "Musika gustatzen zait" },
+          { q: "Te gustan los libros (varios): «Liburuak gustatzen ___»", options: ["zaizkit", "zait", "ditut", "gara"], answer: "zaizkit", speak: "Liburuak gustatzen zaizkit" },
+        ] },
+      { npc: "Dantzaria", emoji: "💃", skin: "#c98d66", cloth: "#e04b3a", hat: "#2e2e38",
+        greet: "Kaixo! Dantzatzera!", greetEs: "¡Hola! ¡A bailar!",
+        situations: [
+          { q: "Los sábados vais al cine: «Zinemara joaten ___ larunbatetan»", options: ["gara", "naiz", "dira", "zait"], answer: "gara", speak: "Zinemara joaten gara larunbatetan" },
+          { q: "Te gusta ir al monte: «___ joatea gustatzen zait»", options: ["Mendira", "Mendian", "Menditik", "Mendia"], answer: "Mendira", speak: "Mendira joatea gustatzen zait" },
+        ] },
+    ],
+  },
+
+  lana: {
+    num: 16, difficulty: 6, bossHp: 5,
+    theme: { backdrop: "houses", decor: "none", weather: "none", collectible: "star" },
+    boss: "Herensuge", bossEmoji: "🐲",
+    bossIntro: "GROAAR! Azken mundua da hau! Erakutsi dena dakizula!",
+    bossIntroEs: "¡GROAAR! ¡Este es el último mundo! ¡Demuestra que lo sabes todo!",
+    gates: [
+      { npc: "Medikua", emoji: "🩺", skin: "#c98d66", cloth: "#f0f4f8", hat: "#4a3220",
+        greet: "Egun on! Ospitaletik nator.", greetEs: "¡Buenos días! Vengo del hospital.",
+        situations: [
+          { q: "Le preguntas en qué trabaja:", options: ["Zertan egiten duzu lan?", "Non bizi zara?", "Zenbat urte dituzu?", "Zer ordu da?"], answer: "Zertan egiten duzu lan?", speak: "Zertan egiten duzu lan?" },
+          { q: "Ella responde: soy médica: «___ naiz»", options: ["Medikua", "Erizaina", "Sukaldaria", "Irakaslea"], answer: "Medikua", speak: "Medikua naiz" },
+        ] },
+      { npc: "Erizaina", emoji: "💉", skin: "#b07850", cloth: "#7fd0f0", hat: "#2a1e14",
+        greet: "Kaixo! Ospitalean lan egiten dut.", greetEs: "¡Hola! Trabajo en el hospital.",
+        situations: [
+          { q: "Quien cuida enfermos (eri + zain) es…", options: ["erizaina", "medikua", "langilea", "dendaria"], answer: "erizaina", speak: "Erizaina" },
+          { q: "Tú trabajas en la oficina: «___ lan egiten dut»", options: ["Bulegoan", "Bulegoa", "Bulegora", "Bulegotik"], answer: "Bulegoan", speak: "Bulegoan lan egiten dut" },
+        ] },
+      { npc: "Ikaslea", emoji: "🎓", skin: "#c98d66", cloth: "#5b7596", hat: "#4a3220",
+        greet: "Kaixo! Unibertsitatera noa!", greetEs: "¡Hola! ¡Voy a la universidad!",
+        situations: [
+          { q: "Estudias en la universidad: «Unibertsitatean ___ dut»", options: ["ikasten", "ikasi", "ikasiko", "lan"], answer: "ikasten", speak: "Unibertsitatean ikasten dut" },
+          { q: "El aparato de la oficina para trabajar es el…", options: ["ordenagailua", "telefonoa", "mahaia", "giltza"], answer: "ordenagailua", speak: "Ordenagailua" },
+        ] },
+    ],
+    friend: { name: "Alvaro", label: "Álvaro",
+      greet: "Nao, azken mundua gaindituta! A1 azterketa zain duzu. Harro nago!",
+      greetEs: "¡Nao, el último mundo superado! Te espera el examen A1. ¡Estoy orgulloso!" },
   },
 };
 
@@ -1341,7 +1757,7 @@ const TIPS = [
 
 // Versión de la app: se muestra en el perfil y debe coincidir con la
 // caché del service worker (sw.js). Subir en cada release.
-const APP_VERSION = "3.2.0";
+const APP_VERSION = "3.3.0";
 const APP_DATE = "16/08/2026";
 
 // Nº de lecciones por unidad (la última es el repaso/examen de la unidad)
