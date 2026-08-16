@@ -408,34 +408,94 @@ function beep(freqs, dur = 0.11, type = "triangle", gain = 0.16) {
   } catch (e) {}
 }
 
+/* Cada efecto se describe como segmentos de síntesis: tono (con glissando
+   f→f2), armónico de campana, capa de ruido para el "toque" físico…
+   El resultado compite con un pack de sonidos, pero pesa cero bytes. */
 const SFX_SPECS = {
-  // Acierto: arpegio mayor ascendente do–mi–sol, alegre y breve.
-  ok:   { notes: [523.25, 659.25, 783.99], dur: 0.075, type: "triangle", gain: 0.5 },
-  // Fallo: dos notas graves descendentes, suaves.
-  ko:   { notes: [196, 164.81], dur: 0.16, type: "sine", gain: 0.35 },
-  // Fin de lección: fanfarria do–mi–sol–do agudo.
-  win:  { notes: [523.25, 659.25, 783.99, 1046.5], dur: 0.12, type: "triangle", gain: 0.5 },
-  // Pareja emparejada: toque corto.
-  pair: { notes: [880], dur: 0.06, type: "triangle", gain: 0.4 },
+  // Toque al elegir una opción o ficha: golpecito con blip descendente.
+  tap: [
+    { noise: true, dur: 0.025, gain: 0.12 },
+    { f: 950, f2: 700, dur: 0.055, gain: 0.22 },
+  ],
+  // Ficha colocada: burbuja ascendente.
+  chip: [{ f: 480, f2: 900, dur: 0.08, gain: 0.28, harm: 0.2 }],
+  // Acierto: campanitas do–mi–sol con armónicos + destello agudo.
+  ok: [
+    { f: 523.25, start: 0, dur: 0.1, gain: 0.34, harm: 0.35 },
+    { f: 659.25, start: 0.07, dur: 0.1, gain: 0.34, harm: 0.35 },
+    { f: 783.99, start: 0.14, dur: 0.13, gain: 0.34, harm: 0.35 },
+    { f: 1567.98, start: 0.2, dur: 0.16, gain: 0.1, harm: 0.2 },
+  ],
+  // Fallo: "womp" descendente con capa subgrave, suave.
+  ko: [
+    { f: 220, f2: 145, dur: 0.24, type: "triangle", gain: 0.26 },
+    { f: 110, f2: 72, dur: 0.24, gain: 0.16 },
+  ],
+  // Pareja emparejada: ding brillante doble.
+  pair: [
+    { f: 1174.66, dur: 0.08, gain: 0.26, harm: 0.4 },
+    { f: 1567.98, start: 0.05, dur: 0.11, gain: 0.18, harm: 0.3 },
+  ],
+  // Hito de combo: glissando pentatónico ascendente.
+  combo: [
+    { f: 523.25, start: 0, dur: 0.07, gain: 0.28, harm: 0.25 },
+    { f: 587.33, start: 0.05, dur: 0.07, gain: 0.28, harm: 0.25 },
+    { f: 659.25, start: 0.1, dur: 0.07, gain: 0.28, harm: 0.25 },
+    { f: 783.99, start: 0.15, dur: 0.07, gain: 0.3, harm: 0.25 },
+    { f: 1046.5, start: 0.2, dur: 0.16, gain: 0.32, harm: 0.35 },
+  ],
+  // Fin de lección: acorde-fanfarria en dos golpes + campana final.
+  win: [
+    { f: 523.25, start: 0, dur: 0.12, gain: 0.2, harm: 0.3 },
+    { f: 659.25, start: 0, dur: 0.12, gain: 0.2, harm: 0.3 },
+    { f: 783.99, start: 0, dur: 0.12, gain: 0.2, harm: 0.3 },
+    { f: 783.99, start: 0.16, dur: 0.1, gain: 0.2, harm: 0.3 },
+    { f: 1046.5, start: 0.16, dur: 0.1, gain: 0.2, harm: 0.3 },
+    { f: 1318.51, start: 0.3, dur: 0.28, gain: 0.26, harm: 0.4 },
+  ],
 };
 
-// Sintetiza las notas como un WAV PCM de 16 bits y devuelve una URL blob.
-function synthWavUrl(spec) {
+// Sintetiza los segmentos como un WAV PCM de 16 bits y devuelve una URL blob.
+function synthWavUrl(segments) {
   const sr = 22050;
-  const total = Math.ceil(sr * (spec.notes.length * spec.dur + 0.3));
+  const end = Math.max(...segments.map(s => (s.start || 0) + (s.dur || 0.1))) + 0.15;
+  const total = Math.ceil(sr * end);
   const data = new Float32Array(total);
-  spec.notes.forEach((f, i) => {
-    const start = Math.floor(i * spec.dur * sr);
-    const len = Math.floor(spec.dur * 1.9 * sr);
+  for (const s of segments) {
+    const start = Math.floor((s.start || 0) * sr);
+    const dur = s.dur || 0.1;
+    const len = Math.floor(dur * 1.7 * sr);
+    const gain = s.gain === undefined ? 0.3 : s.gain;
+    if (s.noise) {
+      for (let n = 0; n < len && start + n < total; n++) {
+        const t = n / sr;
+        data[start + n] += (Math.random() * 2 - 1) * Math.exp(-t * 120) * gain;
+      }
+      continue;
+    }
+    const f1 = s.f, f2 = s.f2 === undefined ? s.f : s.f2;
+    let ph = 0, ph2 = 0;
     for (let n = 0; n < len && start + n < total; n++) {
       const t = n / sr;
-      const env = Math.min(1, t / 0.015) * Math.exp(-t * (3 / (spec.dur * 1.9)));
-      const ph = f * t;
-      const tri = 2 * Math.abs(2 * (ph - Math.floor(ph + 0.5))) - 1;
-      const s = spec.type === "sine" ? Math.sin(2 * Math.PI * ph) : tri;
-      data[start + n] += s * env * spec.gain;
+      const f = f1 + (f2 - f1) * Math.min(1, t / dur);
+      ph += (2 * Math.PI * f) / sr;
+      ph2 += (2 * Math.PI * f * 2) / sr;
+      const env = Math.min(1, t / 0.008) * Math.exp(-t * (4.5 / dur));
+      let v;
+      if (s.type === "triangle") {
+        const p = ph / (2 * Math.PI), frac = p - Math.floor(p);
+        v = 4 * Math.abs(frac - 0.5) - 1;
+      } else {
+        v = Math.sin(ph);
+      }
+      if (s.harm) v += Math.sin(ph2) * s.harm;
+      data[start + n] += v * env * gain;
     }
-  });
+  }
+  // normalización suave contra el clipping
+  let peak = 0;
+  for (let i = 0; i < total; i++) peak = Math.max(peak, Math.abs(data[i]));
+  const norm = peak > 0.95 ? 0.95 / peak : 1;
   const buf = new ArrayBuffer(44 + total * 2);
   const v = new DataView(buf);
   const wstr = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
@@ -444,8 +504,8 @@ function synthWavUrl(spec) {
   v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
   wstr(36, "data"); v.setUint32(40, total * 2, true);
   for (let i = 0; i < total; i++) {
-    const s = Math.max(-1, Math.min(1, data[i]));
-    v.setInt16(44 + i * 2, s * 32767, true);
+    const x = Math.max(-1, Math.min(1, data[i] * norm));
+    v.setInt16(44 + i * 2, x * 32767, true);
   }
   return URL.createObjectURL(new Blob([buf], { type: "audio/wav" }));
 }
@@ -461,19 +521,20 @@ function getSfx(name) {
   return SFX[name];
 }
 
+function sfxFallback(name) {
+  const fs = (SFX_SPECS[name] || []).filter(s => s.f).map(s => s.f).slice(0, 4);
+  beep(fs.length ? fs : [600], 0.09, "triangle", 0.14);
+}
+
 function playSfx(name) {
   if (S.sound === false) return;
   try {
     const a = getSfx(name);
     a.currentTime = 0;
     const p = a.play();
-    if (p && p.catch) p.catch(() => {
-      const s = SFX_SPECS[name];
-      beep(s.notes, s.dur, s.type, 0.16);
-    });
+    if (p && p.catch) p.catch(() => sfxFallback(name));
   } catch (e) {
-    const s = SFX_SPECS[name];
-    beep(s.notes, s.dur, s.type, 0.16);
+    sfxFallback(name);
   }
 }
 
@@ -1539,6 +1600,7 @@ function renderExercise(ex) {
       box.querySelectorAll(".option").forEach(b => b.classList.remove("selected"));
       btn.classList.add("selected");
       selected = btn.dataset.opt;
+      playSfx("tap");
       setCheckEnabled(true);
     }));
     getAnswer = () => selected;
@@ -1567,7 +1629,10 @@ function renderExercise(ex) {
       btn.classList.add("selected");
       selected = btn.dataset.opt;
       gap.textContent = selected;
+      gap.classList.remove("filled");
+      void gap.offsetWidth;
       gap.classList.add("filled");
+      playSfx("tap");
       setCheckEnabled(true);
     }));
     getAnswer = () => selected;
@@ -1589,6 +1654,7 @@ function renderExercise(ex) {
         const k = Number(c.dataset.k);
         const rem = picked.splice(k, 1)[0];
         box.querySelector(`#bank .chip[data-i="${rem.i}"]`).classList.remove("used");
+        playSfx("tap");
         sync();
       }));
       setCheckEnabled(picked.length > 0);
@@ -1596,6 +1662,7 @@ function renderExercise(ex) {
     box.querySelectorAll("#bank .chip").forEach(c => c.addEventListener("click", () => {
       c.classList.add("used");
       picked.push({ i: Number(c.dataset.i), t: c.dataset.t });
+      playSfx("chip");
       sync();
     }));
     getAnswer = () => picked.map(p => p.t).join(" ");
@@ -1636,7 +1703,7 @@ function renderExercise(ex) {
     box.querySelectorAll(".match-btn").forEach(btn => btn.addEventListener("click", () => {
       if (btn.classList.contains("matched")) return;
       if (btn.dataset.side === "eu") speak(btn.dataset.v);
-      if (!sel) { sel = btn; btn.classList.add("selected"); return; }
+      if (!sel) { sel = btn; btn.classList.add("selected"); playSfx("tap"); return; }
       if (sel === btn) { btn.classList.remove("selected"); sel = null; return; }
       if (sel.dataset.side === btn.dataset.side) {
         sel.classList.remove("selected"); sel = btn; btn.classList.add("selected"); return;
@@ -1697,7 +1764,9 @@ function checkAnswer(ex, raw) {
   if (ok) {
     session.correct++; session.combo++;
     session.bestCombo = Math.max(session.bestCombo, session.combo);
-    sfxOk();
+    // en los hitos de combo suena el glissando en lugar del acierto normal
+    if (session.combo > 0 && session.combo % 5 === 0) playSfx("combo");
+    else sfxOk();
     try { if (navigator.vibrate) navigator.vibrate(25); } catch (e) {}
     if (session.combo === 5 || session.combo === 10) toast(`🔥 ¡Combo de ${session.combo}!`);
   } else {
