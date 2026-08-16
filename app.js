@@ -512,6 +512,7 @@ function exChoice(word, pool, dir) {
     accepts: dir === "eu-es" && word.alt ? [answer, ...word.alt] : [answer],
     solution: `${word.eu} = ${word.es}`,
     wordKey: word.eu,
+    speakOnCheck: dir === "es-eu" ? word.eu : null, // oír la respuesta en euskera
   };
 }
 
@@ -548,6 +549,7 @@ function exWordbank(phrase, unit) {
     tokens: shuffle([...tokens, ...extras]),
     answer: phrase.eu,
     solution: phrase.eu,
+    speakOnCheck: phrase.eu, // al comprobar, se lee cómo suena la frase
   };
 }
 
@@ -575,6 +577,7 @@ function exTypeEU(item) {
     accepts: [item.eu],
     solution: `${item.es} = ${item.eu}`,
     wordKey: item.eu,
+    speakOnCheck: item.eu,
   };
 }
 
@@ -605,6 +608,7 @@ function exDrill(d) {
     answer: d.answer,
     accepts: [d.answer],
     solution: d.q.replace("___", d.answer),
+    speakOnCheck: d.q.replace("___", d.answer),
   };
 }
 
@@ -627,6 +631,7 @@ function exFillPhrase(phrase, unit) {
     answer,
     accepts: [answer],
     solution: phrase.eu,
+    speakOnCheck: phrase.eu,
   };
 }
 
@@ -1738,6 +1743,11 @@ function showFeedback(ok, ex, { skipped } = {}) {
   document.getElementById("continue").addEventListener("click", nextExercise);
   document.getElementById("continue").focus();
 
+  // Al comprobar, leer en voz alta la respuesta en euskera para
+  // aprender cómo suena (tras el efecto de acierto/fallo). Se cancela
+  // si el usuario avanza antes, para no pisar el audio del siguiente.
+  if (ex.speakOnCheck) session.speakTimer = setTimeout(() => speak(ex.speakOnCheck), 500);
+
   // Capa visual de videojuego: partículas y textos flotantes.
   const anchor = document.querySelector(".progress-track") || footer;
   if (ok) {
@@ -1754,6 +1764,7 @@ function showFeedback(ok, ex, { skipped } = {}) {
 function nextExercise() {
   const s = session;
   if (!s) return;
+  clearTimeout(s.speakTimer); // no pisar el audio del siguiente ejercicio
   if (s.mode === "lesson" && S.hearts <= 0) { failLesson(); return; }
   if (s.mode === "exam" && s.wrong > EXAM_A1.maxErrors) { failExam(); return; }
   s.checked = false;
