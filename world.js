@@ -362,7 +362,10 @@ function worldUpdate() {
   const b = W.boss;
   if (!b.defeated && p.x > b.x - 42) {
     p.x = b.x - 42;
-    if (!W.quiz) openWorldQuiz(null, b);
+    if (!W.quiz && !W.introOpen) {
+      if (!b.introShown) openBossIntro();
+      else openWorldQuiz(null, b);
+    }
   }
   if (b.shake > 0) b.shake--;
 
@@ -414,6 +417,35 @@ function makeWorldQuestion(unit) {
     speakAfter: w.eu,
     mnKey: w.eu,
   };
+}
+
+// Presentación del jefe: su leyenda de la mitología vasca antes de luchar.
+function openBossIntro() {
+  W.paused = true;
+  W.introOpen = true;
+  W.boss.introShown = true;
+  playSfx("ko"); // golpe grave de aparición
+  speak(W.meta.bossIntro.replace(/^(GRRR!|GRAUNK!|GROAAR!|Zzz…|Ssss…|Sssuak|Ji ji ji!|Ji ji!|Beee!|Blub!)\s*/, ""));
+  const panel = document.getElementById("w-quiz");
+  panel.hidden = false;
+  panel.innerHTML = `
+    <div class="wq-head boss-head">
+      <span class="wq-emoji boss-emoji">${W.meta.bossEmoji}</span>
+      <div>
+        <span class="boss-tag">⚔️ JEFE DEL MUNDO ${W.meta.num}</span>
+        <b class="boss-name">${esc(W.meta.boss)}</b>
+        <div class="wq-greet">«${esc(W.meta.bossIntro)}» <span>${esc(W.meta.bossIntroEs)}</span></div>
+      </div>
+    </div>
+    ${W.meta.lore ? `<div class="wq-lore">📜 ${esc(W.meta.lore)}</div>` : ""}
+    <button class="btn btn-red btn-full" id="w-battle" style="margin-top:8px">⚔️ ¡A la batalla!</button>`;
+  document.getElementById("w-battle").addEventListener("click", () => {
+    W.introOpen = false;
+    panel.hidden = true;
+    panel.innerHTML = "";
+    playSfx("combo");
+    openWorldQuiz(null, W.boss);
+  });
 }
 
 function openWorldQuiz(gate, boss) {

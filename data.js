@@ -1003,6 +1003,7 @@ const WORLD_META = {
     boss: "Basajaun", bossEmoji: "🌲",
     bossIntro: "GRRR! Gaua dator… hiru erantzun zuzen edo ez zara pasako!",
     bossIntroEs: "¡Cae la noche… tres respuestas correctas o no pasarás!",
+    lore: "El «Señor del Bosque». Un ser enorme y peludo que vigila los hayedos del Pirineo: protege los rebaños, avisa a los pastores de las tormentas y, según la leyenda, enseñó a los humanos a cultivar el trigo y forjar el hierro.",
     gates: [
       { npc: "Artzaina", emoji: "🐑", skin: "#a06a48", cloth: "#3f6ea5", hat: "#5c4632",
         greet: "Egun on! Artzaina naiz.", greetEs: "¡Buenos días! Soy el pastor.",
@@ -1035,6 +1036,7 @@ const WORLD_META = {
     boss: "Galtzagorri", bossEmoji: "👺",
     bossIntro: "Kaixo! Nor zara ZU? Erantzun ondo edo ez zara pasako!",
     bossIntroEs: "¡Hola! ¿Quién eres TÚ? ¡Responde bien o no pasarás!",
+    lore: "Duendecillos de pantalones rojos que caben en un alfiletero. Trabajan a una velocidad imposible y nunca paran de preguntar: «Eta orain zer?» (¿y ahora qué?). Quien los invoca acaba agotado de inventarles tareas.",
     gates: [
       { npc: "Maite", emoji: "👧", skin: "#c98d66", cloth: "#d96fa8", hat: "#4a3220",
         greet: "Kaixo! Nola duzu izena?", greetEs: "¡Hola! ¿Cómo te llamas?",
@@ -1063,6 +1065,7 @@ const WORLD_META = {
     boss: "Tartalo", bossEmoji: "👁️",
     bossIntro: "GRRR! Nire ardiak zenbatu behar ditut… lagundu edo ez zara pasako!",
     bossIntroEs: "¡Tengo que contar mis ovejas… ayúdame o no pasarás!",
+    lore: "El cíclope de la mitología vasca: un gigante pastor de un solo ojo que vive en cuevas y devora ovejas enteras. Solo el ingenio — no la fuerza — permite escapar de él. Y siempre anda contando su rebaño.",
     gates: [
       { npc: "Saltzailea", emoji: "🧺", skin: "#b07850", cloth: "#3e8a36", hat: "#d8d8d8",
         greet: "Egun on! Zenbat sagar nahi dituzu?", greetEs: "¡Buenos días! ¿Cuántas manzanas quieres?",
@@ -1091,6 +1094,7 @@ const WORLD_META = {
     boss: "Lamia", bossEmoji: "🧜‍♀️",
     bossIntro: "Ssss… ibaia nirea da. Zure familia ezagutu nahi dut!",
     bossIntroEs: "Sss… el río es mío. ¡Quiero conocer a tu familia!",
+    lore: "Criaturas de los ríos con pies de pato que peinan sus largos cabellos con un peine de oro. Ayudaban a los caseríos que les dejaban ofrendas junto al agua… pero ¡ay de quien les robaba el peine!",
     gates: [
       { npc: "Ama", emoji: "👩", skin: "#c98d66", cloth: "#8a5fae", hat: "#4a3220",
         greet: "Kaixo! Familia argazkia atera dugu.", greetEs: "¡Hola! Nos hemos hecho la foto de familia.",
@@ -1119,6 +1123,7 @@ const WORLD_META = {
     boss: "Sorgina", bossEmoji: "🧙",
     bossIntro: "Ji ji ji! Deskribatu ondo… edo untxi bihurtuko zaitut!",
     bossIntroEs: "¡Ji ji ji! Describe bien… ¡o te convierto en conejo!",
+    lore: "Las brujas vascas, que se reunían de noche en los akelarres, como el de las cuevas de Zugarramurdi. Unas curaban con hierbas, otras hacían travesuras… y nunca sabes cuál te ha tocado.",
     gates: [
       { npc: "Neska txikia", emoji: "🧒", skin: "#c98d66", cloth: "#d96fa8", hat: "#4a3220",
         greet: "Kaixo! Nire txakurra ikusi duzu?", greetEs: "¡Hola! ¿Has visto a mi perro?",
@@ -1147,6 +1152,7 @@ const WORLD_META = {
     boss: "Herensuge Txikia", bossEmoji: "🐉",
     bossIntro: "Sssuak kolorez aldatzen dira! Asmatu nire koloreak!",
     bossIntroEs: "¡Mis llamas cambian de color! ¡Acierta mis colores!",
+    lore: "El dragón-serpiente de las cuevas vascas; en algunas leyendas llega a tener siete cabezas. La leyenda de San Miguel de Aralar cuenta cómo fue vencido el grande. Este aún es pequeño… y ya escupe llamas de colores.",
     gates: [
       { npc: "Margolaria", emoji: "🎨", skin: "#c98d66", cloth: "#3f6ea5", hat: "#e04b3a",
         greet: "Kaixo! Zerua margotzen ari naiz.", greetEs: "¡Hola! Estoy pintando el cielo.",
@@ -1175,6 +1181,7 @@ const WORLD_META = {
     boss: "Iratxoa", bossEmoji: "🧚",
     bossIntro: "Ji ji! Etxeko gauzak ezkutatu ditut! Aurkitu nahi?",
     bossIntroEs: "¡Ji ji! ¡He escondido las cosas de la casa! ¿Quieres encontrarlas?",
+    lore: "Duendes domésticos y traviesos: de noche terminan las tareas de la casa… o esconden las llaves, según su humor. Si algo desaparece en un caserío, ya sabes a quién culpar.",
     gates: [
       { npc: "Ama", emoji: "🍳", skin: "#c98d66", cloth: "#8a5fae", hat: "#4a3220",
         greet: "Kaixo! Sukaldean nago!", greetEs: "¡Hola! ¡Estoy en la cocina!",
@@ -1203,6 +1210,7 @@ const WORLD_META = {
     boss: "Inguma", bossEmoji: "😴",
     bossIntro: "Zzz… ni gauez nator… zure eguna kontatu edo ez duzu lorik egingo!",
     bossIntroEs: "Zzz… yo llego de noche… ¡cuéntame tu día o no dormirás!",
+    lore: "El genio de las pesadillas: entra en las casas de noche y se sienta sobre el pecho de quien duerme. Se le espantaba con oraciones… o demostrándole que tu rutina diaria no le tiene miedo.",
     gates: [
       { npc: "Okina", emoji: "🥖", skin: "#b07850", cloth: "#d8c49a", hat: "#f0e9d6",
         greet: "Egun on! Ogia berri-berria!", greetEs: "¡Buenos días! ¡Pan recién hecho!",
@@ -1231,6 +1239,7 @@ const WORLD_META = {
     boss: "Gaueko", bossEmoji: "🌙",
     bossIntro: "Gaua nirea da! Ordua ondo esan… edo nirekin geratuko zara!",
     bossIntroEs: "¡La noche es mía! Di bien la hora… ¡o te quedarás conmigo!",
+    lore: "El espíritu de la noche. Su ley es antigua: «Eguna egunezkoentzat, gaua gauezkoentzat» — el día para los del día, la noche para los de la noche. Castiga a quien presume de no temer a la oscuridad.",
     gates: [
       { npc: "Erlojugilea", emoji: "⏰", skin: "#c98d66", cloth: "#5c4632", hat: "#d8d8d8",
         greet: "Kaixo! Zer ordu da?", greetEs: "¡Hola! ¿Qué hora es?",
@@ -1259,6 +1268,7 @@ const WORLD_META = {
     boss: "Sugaar", bossEmoji: "🐍",
     bossIntro: "Ssss… gose naiz! Janaria ondo eskatu edo dena jango dut!",
     bossIntroEs: "Sss… ¡tengo hambre! ¡Pide bien la comida o me lo comeré todo!",
+    lore: "La gran serpiente que cruza el cielo como una hoz de fuego, pareja de la diosa Mari. Cuando ambos se encuentran en las cumbres, se desata la tormenta. Y siempre, siempre tiene hambre.",
     gates: [
       { npc: "Zerbitzaria", emoji: "☕", skin: "#c98d66", cloth: "#2e2e38", hat: "#f0e9d6",
         greet: "Egun on! Zer nahi duzu?", greetEs: "¡Buenos días! ¿Qué quieres?",
@@ -1287,6 +1297,7 @@ const WORLD_META = {
     boss: "Basandere", bossEmoji: "🌳",
     bossIntro: "Basoko denda nirea da! Ondo erosi… edo hutsik aterako zara!",
     bossIntroEs: "¡La tienda del bosque es mía! Compra bien… ¡o saldrás con las manos vacías!",
+    lore: "La «Señora del Bosque», compañera del Basajaun. Se aparece peinándose con un peine de oro, y quien intenta robárselo conoce su furia. Guarda los secretos — y los tesoros — de la espesura.",
     gates: [
       { npc: "Dendaria", emoji: "🛍️", skin: "#c98d66", cloth: "#8a5fae", hat: "#4a3220",
         greet: "Kaixo! Alkandora berriak ditugu!", greetEs: "¡Hola! ¡Tenemos camisas nuevas!",
@@ -1315,6 +1326,7 @@ const WORLD_META = {
     boss: "Jentila", bossEmoji: "🗿",
     bossIntro: "GRAUNK! Harri hau nirea da! Herria ezagutzen duzu?",
     bossIntroEs: "¡GRAUNK! ¡Esta piedra es mía! ¿Conoces el pueblo?",
+    lore: "Los gigantes paganos que construyeron los dólmenes y lanzaban rocas de monte a monte. Cuando vieron llegar una nube extraña (Kixmi), se enterraron bajo tierra… todos menos uno: Olentzero.",
     gates: [
       { npc: "Turista", emoji: "📷", skin: "#e0b18e", cloth: "#e04b3a", hat: "#f0e9d6",
         greet: "Barkatu… galduta nago!", greetEs: "Perdona… ¡estoy perdido!",
@@ -1343,6 +1355,7 @@ const WORLD_META = {
     boss: "Olarro", bossEmoji: "🐙",
     bossIntro: "Blub! Itsasoa nirea da! Ondo bidaiatu… edo hondora zoaz!",
     bossIntroEs: "¡Blub! ¡El mar es mío! Viaja bien… ¡o te vas al fondo!",
+    lore: "Las gentes del mar contaban historias de un pulpo colosal que abrazaba los barcos en las noches de niebla. Los arrantzales lo sabían bien: para navegar su mar, primero hay que conocer sus palabras.",
     gates: [
       { npc: "Txarteldegia", emoji: "🎫", skin: "#c98d66", cloth: "#3f6ea5", hat: "#3f6ea5",
         greet: "Egun on! Nora zoaz?", greetEs: "¡Buenos días! ¿Adónde vas?",
@@ -1371,6 +1384,7 @@ const WORLD_META = {
     boss: "Mari", bossEmoji: "⛈️",
     bossIntro: "Ni Mari naiz, ekaitzen anderea! Eguraldia ezagutu… edo tximista!",
     bossIntroEs: "¡Soy Mari, la señora de las tormentas! Conoce el tiempo… ¡o rayo!",
+    lore: "La dama de Anboto, la diosa principal de la mitología vasca: señora de las tormentas y de la tierra, cruza el cielo como una bola de fuego. Odia la mentira y premia la palabra dada. Su humor cambia como el eguraldia.",
     gates: [
       { npc: "Baserritarra", emoji: "🌾", skin: "#b07850", cloth: "#5c4632", hat: "#2a1e14",
         greet: "Kaixo! Hau eguraldia, hau!", greetEs: "¡Hola! ¡Vaya tiempo!",
@@ -1399,6 +1413,7 @@ const WORLD_META = {
     boss: "Akerbeltz", bossEmoji: "🐐",
     bossIntro: "Beee! Jai gauean dantzatu behar duzu nirekin… edo erantzun ondo!",
     bossIntroEs: "¡Beee! Tendrás que bailar conmigo en la fiesta… ¡o responder bien!",
+    lore: "El macho cabrío negro, protector de los animales del caserío. Preside los akelarres — la palabra viene de él: el «prado del aker». Le encanta la fiesta, la música… y bailar hasta el amanecer.",
     gates: [
       { npc: "Pilotaria", emoji: "🥎", skin: "#c98d66", cloth: "#f0e9d6", hat: "#e04b3a",
         greet: "Aupa! Frontoira zatoz?", greetEs: "¡Aúpa! ¿Vienes al frontón?",
@@ -1427,6 +1442,7 @@ const WORLD_META = {
     boss: "Herensuge", bossEmoji: "🐲",
     bossIntro: "GROAAR! Azken mundua da hau! Erakutsi dena dakizula!",
     bossIntroEs: "¡GROAAR! ¡Este es el último mundo! ¡Demuestra que lo sabes todo!",
+    lore: "El Herensuge adulto: el gran dragón de siete cabezas de las leyendas. Guarda la última puerta antes del examen A1. Todos los mundos te han entrenado para este momento. Zorte on, Nao!",
     gates: [
       { npc: "Medikua", emoji: "🩺", skin: "#c98d66", cloth: "#f0f4f8", hat: "#4a3220",
         greet: "Egun on! Ospitaletik nator.", greetEs: "¡Buenos días! Vengo del hospital.",
@@ -1757,7 +1773,7 @@ const TIPS = [
 
 // Versión de la app: se muestra en el perfil y debe coincidir con la
 // caché del service worker (sw.js). Subir en cada release.
-const APP_VERSION = "3.3.1";
+const APP_VERSION = "3.4.0";
 const APP_DATE = "16/08/2026";
 
 // Nº de lecciones por unidad (la última es el repaso/examen de la unidad)

@@ -1013,6 +1013,20 @@ body::before {
   border-left: 3px solid var(--gold); border-radius: 6px; padding: 5px 8px; margin-top: 5px;
 }
 .wq-retry { color: var(--blue); }
+.boss-head { align-items: flex-start; }
+.boss-emoji { font-size: 34px !important; }
+.boss-tag {
+  display: block;
+  font-size: 10px; font-weight: 900; letter-spacing: .8px;
+  color: var(--red); text-transform: uppercase;
+}
+.boss-name { font-size: 17px; }
+.wq-lore {
+  font-size: 13px; font-weight: 600; line-height: 1.5;
+  color: var(--text-mut);
+  background: var(--gold-soft); border-left: 3px solid var(--gold);
+  border-radius: 8px; padding: 8px 12px; margin-top: 6px;
+}
 .world-controls {
   display: flex; justify-content: space-between; align-items: center;
   padding: 12px 4px 0;
