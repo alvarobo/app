@@ -344,6 +344,61 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(-10px); } }
 
+/* ---------- Niveles (A1, A2…) ---------- */
+.level-banner {
+  display: flex; gap: 14px; align-items: flex-start;
+  border: 2px solid var(--gold); border-radius: var(--radius);
+  padding: 16px; margin-bottom: 22px;
+  background: #fffaf0;
+}
+.level-banner h2 { font-size: 17px; font-weight: 900; margin-bottom: 4px; }
+.level-banner p { font-size: 13px; color: var(--gray-4); font-weight: 600; margin-bottom: 8px; }
+.level-badge {
+  flex-shrink: 0;
+  width: 46px; height: 46px; border-radius: 12px;
+  background: var(--gold); color: #fff;
+  font-weight: 900; font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 3px 0 #d9aa00;
+}
+.level-badge.locked { background: var(--gray-3); box-shadow: 0 3px 0 var(--gray-4); }
+.level-progress { height: 10px; background: var(--gray-2); border-radius: 6px; overflow: hidden; }
+.level-progress div { height: 100%; background: var(--gold); border-radius: 6px; }
+.level-pct { font-size: 12px; font-weight: 800; color: var(--gray-4); }
+
+.locked-level {
+  display: flex; gap: 14px; align-items: center;
+  border: 2px dashed var(--gray-2); border-radius: var(--radius);
+  padding: 16px; margin-top: 26px;
+  opacity: .85;
+}
+.locked-level h2 { font-size: 15px; font-weight: 900; color: var(--gray-4); }
+.locked-level p { font-size: 13px; color: var(--gray-3); font-weight: 600; }
+
+/* ---------- Gramática ---------- */
+.unit-side { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.grammar-btn {
+  background: rgba(255,255,255,.25); color: #fff;
+  border-radius: 10px; padding: 5px 10px;
+  font-size: 12px; font-weight: 800; white-space: nowrap;
+}
+.grammar-btn:active { background: rgba(255,255,255,.4); }
+.grammar-modal { text-align: left; max-height: 82vh; overflow-y: auto; max-width: 440px; }
+.grammar-modal .modal-emoji, .grammar-modal h2 { text-align: center; }
+.grammar-item { margin-bottom: 18px; }
+.grammar-item h3 { font-size: 15px; font-weight: 900; color: var(--blue-dark); margin-bottom: 4px; }
+.grammar-item p { font-size: 14px; color: var(--text); font-weight: 600; margin-bottom: 8px; }
+.grammar-example {
+  display: flex; flex-direction: column;
+  border-left: 3px solid var(--green); border-radius: 4px;
+  background: var(--gray-1); padding: 8px 12px; margin-bottom: 6px;
+}
+.grammar-example b { font-size: 14px; }
+.grammar-example span { font-size: 13px; color: var(--gray-4); font-weight: 600; }
+
+/* ---------- Examen ---------- */
+.exam-btn { font-size: 34px; }
+
 @media (max-width: 420px) {
   .lesson-node:nth-child(4n+2) { transform: translateX(-34px); }
   .lesson-node:nth-child(4n+4) { transform: translateX(34px); }

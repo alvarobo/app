@@ -2,10 +2,16 @@
 
 Una aplicación web completa estilo **Duolingo** para aprender **euskera** desde español. Sin dependencias, sin build, sin cuenta: abre `index.html` y a aprender.
 
+## 🎓 Nivel A1 oficial
+
+El curso está alineado con el **HEOC** (Currículo Básico para la Enseñanza del Euskera a Personas Adultas, de [HABE](https://www.habe.euskadi.eus/acreditacion-niveles-euskera/webhabe00-edukiak/es/)), el marco que define los niveles oficiales A1–C2 de euskera según el MCER. Las 16 unidades cubren los ámbitos temáticos, funciones comunicativas y gramática del nivel **A1 (usuario inicial)**: saludos y cortesía, presentarse, números y edad, familia, descripciones, colores, la casa, rutinas diarias, la hora y la semana, comida y pedir en el bar, compras, la ciudad y direcciones, transporte, el tiempo, ocio y gustos, y trabajo.
+
+El nivel se corona con la **Azterketa A1**: un examen final de 20 preguntas (máximo 3 fallos) que simula la evaluación del nivel. Los niveles **A2, B1…** aparecen en el camino y se irán desbloqueando progresivamente.
+
 ## ✨ Características
 
-- **10 unidades** con +100 palabras y frases reales en euskera: saludos, personas, números, colores, familia, comida, animales, verbos, días y frases útiles.
-- **Camino de lecciones** estilo Duolingo: 4 lecciones por unidad (3 + repaso), con desbloqueo progresivo.
+- **16 unidades A1** con ~190 palabras y ~85 frases reales en euskera, más **notas de gramática** por unidad (izan/egon/ukan, casos -n/-ra/-z/-koa, demostrativos, presente habitual, gustatzen zait…).
+- **Camino de lecciones** estilo Duolingo: 4 lecciones por unidad (3 + repaso), con desbloqueo progresivo y examen final de nivel.
 - **6 tipos de ejercicio**, generados automáticamente:
   - Elección múltiple euskera → español
   - Elección múltiple español → euskera
@@ -40,12 +46,12 @@ python3 -m http.server 8000
 |---|---|
 | `index.html` | Punto de entrada |
 | `styles.css` | Estilos (look & feel tipo Duolingo) |
-| `data.js` | Contenido del curso: unidades, palabras y frases |
+| `data.js` | Contenido del curso: niveles, unidades (palabras, frases, gramática) y examen |
 | `app.js` | Motor: estado, ejercicios, vidas, rachas, audio y render |
 
 ## ➕ Añadir contenido
 
-Añade unidades o palabras editando `data.js` — los ejercicios se generan solos:
+Añade unidades o palabras editando `data.js` — los ejercicios se generan solos. Los niveles futuros (A2, B1…) están declarados en `LEVELS` listos para recibir sus unidades:
 
 ```js
 {

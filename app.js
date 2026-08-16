@@ -77,6 +77,13 @@ function levelPct() { return S.xp % 100; }
 
 function unitDone(u) { return (S.progress[u.id] || 0) >= LESSONS_PER_UNIT; }
 function unitUnlocked(idx) { return idx === 0 || unitDone(COURSE[idx - 1]); }
+function allUnitsDone() { return COURSE.every(unitDone); }
+function examPassed() { return (S.progress[EXAM_A1.id] || 0) > 0; }
+function a1Pct() {
+  const total = COURSE.length * LESSONS_PER_UNIT + 1; // lecciones + examen
+  const done = totalLessonsDone() + (examPassed() ? 1 : 0);
+  return Math.round((done / total) * 100);
+}
 
 function totalLessonsDone() {
   return COURSE.reduce((n, u) => n + (S.progress[u.id] || 0), 0);
@@ -299,6 +306,23 @@ function buildPractice() {
   return shuffle(exs).slice(0, 8);
 }
 
+// Examen A1: preguntas variadas de todas las unidades del nivel.
+function buildExam() {
+  const pool = COURSE.flatMap(u => u.words);
+  const exs = [];
+  for (let i = 0; i < EXAM_A1.size; i++) {
+    const u = pick(COURSE);
+    const w = pick(u.words);
+    const k = i % 5;
+    if (k === 0) exs.push(exChoice(w, pool, "eu-es"));
+    else if (k === 1) exs.push(exChoice(w, pool, "es-eu"));
+    else if (k === 2) exs.push(exListen(w, pool));
+    else if (k === 3) exs.push(exWordbank(pick(u.phrases), u));
+    else exs.push(exType(w));
+  }
+  return shuffle(exs);
+}
+
 /* ---------------- Sesión de lección ---------------- */
 
 let route = { view: "home", tab: "learn" };
@@ -318,6 +342,17 @@ function startLesson(unitIdx, lessonIdx) {
     combo: 0,
     bestCombo: 0,
     checked: false,
+  };
+  route = { view: "lesson" };
+  render();
+}
+
+function startExam() {
+  if (!allUnitsDone()) { toast("Completa todas las unidades para desbloquear el examen 🎓"); return; }
+  session = {
+    mode: "exam",
+    exercises: buildExam(),
+    current: 0, correct: 0, wrong: 0, combo: 0, bestCombo: 0, checked: false,
   };
   route = { view: "lesson" };
   render();
@@ -355,6 +390,18 @@ function finishLesson() {
     const unit = COURSE[s.unitIdx];
     const done = S.progress[unit.id] || 0;
     if (s.lessonIdx === done) S.progress[unit.id] = done + 1; // avanza solo la siguiente pendiente
+  } else if (s.mode === "exam") {
+    if (s.wrong > EXAM_A1.maxErrors) { failExam(); return; }
+    xp = EXAM_A1.xp; gems = EXAM_A1.gems;
+    S.xp += xp; S.gems += gems;
+    S.progress[EXAM_A1.id] = 1;
+    bumpStreak();
+    saveState();
+    sfxWin();
+    route = { view: "results", exam: true, xp, gems, acc, perfect: s.wrong === 0 };
+    session = null;
+    render();
+    return;
   } else {
     xp = 5 + Math.min(5, s.bestCombo);
     S.xp += xp;
@@ -371,6 +418,12 @@ function finishLesson() {
 function failLesson() {
   session = null;
   route = { view: "results", failed: true };
+  render();
+}
+
+function failExam() {
+  session = null;
+  route = { view: "results", examFailed: true };
   render();
 }
 
@@ -434,6 +487,12 @@ function renderHome() {
       startLesson(ui, li);
     }));
 
+  app.querySelectorAll("[data-grammar]").forEach(b =>
+    b.addEventListener("click", () => showGrammarModal(COURSE[Number(b.dataset.grammar)])));
+
+  const ex = app.querySelector("[data-exam]");
+  if (ex) ex.addEventListener("click", startExam);
+
   const pb = app.querySelector("#practice-start");
   if (pb) pb.addEventListener("click", startPractice);
 
@@ -449,7 +508,17 @@ function renderHome() {
 }
 
 function pathHTML() {
-  let html = "";
+  const a1 = LEVELS[0];
+  let html = `
+    <section class="level-banner">
+      <div class="level-badge">A1</div>
+      <div>
+        <h2>${esc(a1.title)}</h2>
+        <p>${esc(a1.desc)}</p>
+        <div class="level-progress"><div style="width:${a1Pct()}%"></div></div>
+        <span class="level-pct">${a1Pct()}% completado${examPassed() ? " · 🎓 aprobado" : ""}</span>
+      </div>
+    </section>`;
   COURSE.forEach((unit, ui) => {
     const unlocked = unitUnlocked(ui);
     const done = S.progress[unit.id] || 0;
@@ -459,7 +528,10 @@ function pathHTML() {
           <h2>Unidad ${ui + 1} · ${esc(unit.title)}</h2>
           <p>${esc(unit.subtitle)}</p>
         </div>
-        <div class="unit-icon">${unit.icon}</div>
+        <div class="unit-side">
+          <div class="unit-icon">${unit.icon}</div>
+          ${unit.grammar ? `<button class="grammar-btn" data-grammar="${ui}" aria-label="Gramática de la unidad">📖 Gramática</button>` : ""}
+        </div>
       </section>
       <div class="lesson-path">`;
     for (let li = 0; li < LESSONS_PER_UNIT; li++) {
@@ -484,7 +556,64 @@ function pathHTML() {
     }
     html += `</div>`;
   });
+
+  // Nodo del examen final A1
+  const examOpen = allUnitsDone();
+  const passed = examPassed();
+  html += `
+    <section class="unit-header" style="background:#3c3c3c">
+      <div>
+        <h2>🎓 ${esc(EXAM_A1.title)}</h2>
+        <p>${esc(EXAM_A1.subtitle)} — ${EXAM_A1.size} preguntas, máximo ${EXAM_A1.maxErrors} fallos</p>
+      </div>
+      <div class="unit-icon">📜</div>
+    </section>
+    <div class="lesson-path">
+      <div class="lesson-node">
+        ${examOpen && !passed ? `<div class="start-bubble">¡Examen!</div>` : ""}
+        <button class="lesson-btn exam-btn ${!examOpen ? "locked" : ""} ${passed ? "done" : ""}"
+          style="background:#3c3c3c" ${!examOpen ? "disabled" : `data-exam="1"`}
+          aria-label="Examen A1">
+          ${passed ? "🏅" : (examOpen ? "🎓" : "🔒")}
+          ${passed ? `<span class="check-badge">✓</span>` : ""}
+        </button>
+        <span class="lesson-label">${passed ? "¡Aprobado!" : "Examen A1"}</span>
+      </div>
+    </div>`;
+
+  // Niveles futuros bloqueados
+  for (const lvl of LEVELS.slice(1)) {
+    html += `
+      <section class="locked-level">
+        <div class="level-badge locked">${lvl.id}</div>
+        <div>
+          <h2>🔒 ${esc(lvl.title)}</h2>
+          <p>${esc(lvl.desc)}</p>
+        </div>
+      </section>`;
+  }
   return html;
+}
+
+function showGrammarModal(unit) {
+  const wrap = document.createElement("div");
+  wrap.className = "modal-backdrop";
+  wrap.innerHTML = `
+    <div class="modal grammar-modal">
+      <div class="modal-emoji">${unit.icon}</div>
+      <h2>${esc(unit.title)}</h2>
+      ${unit.grammar.map(g => `
+        <div class="grammar-item">
+          <h3>${esc(g.title)}</h3>
+          <p>${esc(g.body)}</p>
+          ${(g.examples || []).map(e => `
+            <div class="grammar-example"><b>${esc(e.eu)}</b><span>${esc(e.es)}</span></div>`).join("")}
+        </div>`).join("")}
+      <button class="btn btn-primary btn-full" id="g-close">Entendido</button>
+    </div>`;
+  document.body.appendChild(wrap);
+  wrap.querySelector("#g-close").addEventListener("click", () => wrap.remove());
+  wrap.addEventListener("click", e => { if (e.target === wrap) wrap.remove(); });
 }
 
 function practiceHTML() {
@@ -522,6 +651,15 @@ function profileHTML() {
       </div>
     </div>
     <div class="profile-card">
+      <h2>🎓 Nivel A1 (HEOC/HABE)</h2>
+      <div class="unit-progress-row">
+        <span class="ico">${examPassed() ? "🏅" : "📜"}</span>
+        <span class="name">${examPassed() ? "¡Nivel A1 aprobado!" : "Nivel A1 en curso"}</span>
+        <div class="mini-bar"><div style="width:${a1Pct()}%;background:var(--gold)"></div></div>
+        <span class="pct">${a1Pct()}%</span>
+      </div>
+    </div>
+    <div class="profile-card">
       <h2>🗺️ Unidades</h2>
       ${COURSE.map(u => {
         const done = S.progress[u.id] || 0;
@@ -546,6 +684,8 @@ function renderLesson() {
   const pct = Math.round((s.current / s.exercises.length) * 100);
   const heartsHTML = s.mode === "practice"
     ? `<span style="color:var(--blue);font-weight:900">∞</span>`
+    : s.mode === "exam"
+    ? `<span style="color:var(--purple);font-weight:900">🎓 ${Math.max(0, EXAM_A1.maxErrors - s.wrong)}</span>`
     : `❤️ ${S.hearts}`;
 
   app.innerHTML = `
@@ -557,7 +697,7 @@ function renderLesson() {
     <div class="exercise" id="exercise"></div>
     <div class="lesson-footer" id="footer">
       <div class="lesson-footer-inner" id="footer-inner">
-        <button class="btn btn-ghost" id="skip">Saltar</button>
+        <button class="btn btn-ghost" id="skip" ${s.mode === "exam" ? 'style="visibility:hidden"' : ""}>Saltar</button>
         <div style="flex:1"></div>
         <button class="btn btn-primary" id="check" disabled>Comprobar</button>
       </div>
@@ -772,6 +912,7 @@ function nextExercise() {
   const s = session;
   if (!s) return;
   if (s.mode === "lesson" && S.hearts <= 0) { failLesson(); return; }
+  if (s.mode === "exam" && s.wrong > EXAM_A1.maxErrors) { failExam(); return; }
   s.checked = false;
   s.current++;
   if (s.current >= s.exercises.length) { finishLesson(); return; }
@@ -782,6 +923,35 @@ function nextExercise() {
 
 function renderResults() {
   const r = route;
+  if (r.examFailed) {
+    app.innerHTML = `
+      <div class="results">
+        <div class="big-emoji">📚</div>
+        <h1 class="fail">Esta vez no ha podido ser</h1>
+        <p class="sub">Has superado los ${EXAM_A1.maxErrors} fallos permitidos.<br>Repasa las unidades o practica un poco y vuelve a intentarlo — ¡lo tienes cerca!</p>
+        <button class="btn btn-blue btn-full" id="go-practice" style="max-width:320px">Ir a practicar</button>
+        <button class="btn btn-ghost btn-full" id="go-home" style="max-width:320px">Volver al camino</button>
+      </div>`;
+    document.getElementById("go-practice").addEventListener("click", () => { route = { view: "home", tab: "practice" }; render(); });
+    document.getElementById("go-home").addEventListener("click", () => { route = { view: "home", tab: "learn" }; render(); });
+    return;
+  }
+  if (r.exam) {
+    app.innerHTML = `
+      <div class="results">
+        <div class="big-emoji">🎓</div>
+        <h1>Azterketa A1 gainditua!</h1>
+        <p class="sub">¡Has aprobado el examen del nivel A1! Zorionak!<br>El nivel A2 llegará próximamente.</p>
+        <div class="result-cards">
+          <div class="result-card xp"><div class="rc-title">XP</div><div class="rc-value">+${r.xp}</div></div>
+          <div class="result-card acc"><div class="rc-title">Precisión</div><div class="rc-value">${r.acc}%</div></div>
+          <div class="result-card combo"><div class="rc-title">Gemas</div><div class="rc-value">+${r.gems} 💎</div></div>
+        </div>
+        <button class="btn btn-primary btn-full" id="go-home" style="max-width:320px">Continuar</button>
+      </div>`;
+    document.getElementById("go-home").addEventListener("click", () => { route = { view: "home", tab: "learn" }; render(); });
+    return;
+  }
   if (r.failed) {
     app.innerHTML = `
       <div class="results">
