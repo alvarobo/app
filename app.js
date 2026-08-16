@@ -767,6 +767,7 @@ function exDrill(d) {
     accepts: [d.answer],
     solution: d.q.replace("___", d.answer),
     speakOnCheck: d.q.replace("___", d.answer),
+    translation: d.es || null, // qué significa la frase completa
   };
 }
 
@@ -790,6 +791,7 @@ function exFillPhrase(phrase, unit) {
     accepts: [answer],
     solution: phrase.eu,
     speakOnCheck: phrase.eu,
+    translation: phrase.es,
   };
 }
 
@@ -2048,7 +2050,8 @@ function showFeedback(ok, ex, { skipped } = {}) {
   inner.innerHTML = `
     <div class="feedback ${ok ? "ok" : "ko"}">
       <h3>${ok ? "✅ ¡Muy bien! Oso ondo!" : (skipped ? "⏭️ Ejercicio saltado" : "❌ Incorrecto" + heartsNote)}</h3>
-      ${!ok ? `<p>Respuesta correcta: <b>${esc(ex.solution || ex.answer)}</b></p>` : ""}
+      ${ok && ex.translation ? `<p><b>${esc(ex.solution)}</b> = ${esc(ex.translation)}</p>` : ""}
+      ${!ok ? `<p>Respuesta correcta: <b>${esc(ex.solution || ex.answer)}</b>${ex.translation ? ` · ${esc(ex.translation)}` : ""}</p>` : ""}
       ${mn ? `<p class="mn">💡 ${esc(mn)}</p>` : ""}
     </div>
     <button class="btn ${ok ? "btn-primary" : "btn-red"}" id="continue">Continuar</button>`;
