@@ -32,6 +32,7 @@ const defaultState = () => ({
   streakFreezes: 0,       // protectores de racha equipados (máx. 2)
   stories: {},            // id de historia -> true (completada)
   blitzBest: 0,           // récord del reto Erronka (60 s)
+  worlds: {},             // unitId -> { stars, done } de los mundos 2D
 });
 
 let S = loadState();
@@ -1197,6 +1198,7 @@ function render() {
   else if (route.view === "results") renderResults();
   else if (route.view === "story") renderStoryRead();
   else if (route.view === "blitz") renderBlitz();
+  else if (route.view === "world" && typeof renderWorld === "function") renderWorld();
   else renderHome();
   window.scrollTo(0, 0);
 }
@@ -1275,6 +1277,9 @@ function renderHome() {
 
   const bz = app.querySelector("#blitz-start");
   if (bz) bz.addEventListener("click", startBlitz);
+
+  app.querySelectorAll("[data-world]").forEach(b =>
+    b.addEventListener("click", () => startWorld(b.dataset.world)));
 
   app.querySelectorAll("[data-story]").forEach(b =>
     b.addEventListener("click", () => openStory(b.dataset.story)));
@@ -1419,9 +1424,23 @@ function potdHTML() {
     </section>`;
 }
 
+function worldBannerHTML() {
+  const w = (S.worlds || {})["agurrak"];
+  return `
+    <section class="world-banner">
+      <span class="world-banner-ico">🎮</span>
+      <div style="flex:1">
+        <div class="due-title">Mundo 1: Agurrak <span class="beta-tag">BETA</span></div>
+        <div class="due-sub">Plataformas 2D con Nao: estrellas, gente que te habla en euskera y el Basajaun al final
+        ${w ? ` · ${"⭐".repeat(w.stars)}${w.done ? " ✓" : ""}` : ""}</div>
+      </div>
+      <button class="btn btn-primary" data-world="agurrak">Jugar</button>
+    </section>`;
+}
+
 function pathHTML() {
   const a1 = LEVELS[0];
-  let html = heroHTML() + goalCardHTML() + potdHTML() + `
+  let html = heroHTML() + goalCardHTML() + worldBannerHTML() + potdHTML() + `
     <section class="level-banner">
       <div class="level-badge">A1</div>
       <div>
@@ -2056,6 +2075,28 @@ function nextExercise() {
 
 function renderResults() {
   const r = route;
+  if (r.world) {
+    app.innerHTML = `
+      <div class="results">
+        <div class="big-emoji">🏰</div>
+        <h1 class="shine-text">¡Mundo 1 completado!</h1>
+        <p class="sub">Nao ha cruzado el arco — Basajaun garaituta! 🌲</p>
+        <div class="world-stars-big">${"⭐".repeat(r.stars)}${"☆".repeat(Math.max(0, 5 - r.stars))}</div>
+        <div class="result-cards">
+          <div class="result-card xp"><div class="rc-title">Estrellas</div><div class="rc-value">${r.stars}/5</div></div>
+          <div class="result-card acc"><div class="rc-title">XP</div><div class="rc-value">+${r.xp}</div></div>
+          <div class="result-card combo"><div class="rc-title">Gemas</div><div class="rc-value">+${r.gems} 💎</div></div>
+        </div>
+        ${r.stars < 5 ? `<p class="sub" style="margin-top:-8px">Te faltan estrellas… ¿otra vuelta? 😏</p>` : ""}
+        <button class="btn btn-blue btn-full" id="world-again" style="max-width:320px">🎮 Jugar otra vez</button>
+        <button class="btn btn-primary btn-full" id="go-home" style="max-width:320px">Continuar</button>
+      </div>`;
+    document.getElementById("go-home").addEventListener("click", () => { route = { view: "home", tab: "learn" }; render(); });
+    document.getElementById("world-again").addEventListener("click", () => startWorld(r.unitId));
+    launchConfetti();
+    celebrateLevelUpIfAny();
+    return;
+  }
   if (r.blitz) {
     app.innerHTML = `
       <div class="results">

@@ -2,13 +2,14 @@
 
 // Debe coincidir con APP_VERSION en data.js: al cambiar, los clientes
 // instalados descartan la caché vieja y descargan la versión nueva.
-const CACHE = "euskaltxo-v3.0.0";
+const CACHE = "euskaltxo-v3.1.0";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
   "./data.js",
   "./app.js",
+  "./world.js",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",

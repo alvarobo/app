@@ -956,6 +956,84 @@ body::before {
 .blitz-q { color: var(--text-mut); font-size: 16px !important; margin-bottom: 8px !important; }
 .blitz-banner { border-color: var(--gold); background: var(--gold-soft); }
 
+/* ---------- 🎮 Mundo 2D ---------- */
+.world-banner {
+  display: flex; align-items: center; gap: 12px;
+  border: 2px solid var(--brand); border-radius: var(--radius-lg);
+  background: var(--brand-soft);
+  padding: 14px 16px; margin-bottom: 14px;
+}
+.world-banner-ico { font-size: 28px; }
+.beta-tag {
+  font-size: 10px; font-weight: 900; letter-spacing: .5px;
+  background: var(--purple); color: #fff;
+  border-radius: 6px; padding: 2px 6px; vertical-align: 2px;
+}
+.world-wrap { max-width: 680px; margin: 0 auto; width: 100%; padding: 8px 12px 30px; }
+.world-hud {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 4px 10px;
+  padding-top: calc(6px + env(safe-area-inset-top));
+}
+.world-title { flex: 1; font-weight: 900; font-size: 15px; }
+.world-stars { font-weight: 900; color: var(--gold); font-variant-numeric: tabular-nums; }
+.world-stage { position: relative; border-radius: 14px; overflow: hidden; border: 2px solid var(--border); }
+#w-canvas {
+  display: block; width: 100%; height: auto;
+  image-rendering: pixelated;
+  background: #bfe3f2;
+  touch-action: none;
+}
+.world-quiz {
+  position: absolute; left: 6px; right: 6px; bottom: 6px;
+  background: var(--surface); border: 2px solid var(--border);
+  border-radius: 12px; padding: 9px 10px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .25);
+  animation: sheetUp .25s ease both;
+  max-height: 88%;
+  overflow-y: auto;
+}
+.wq-head { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+.wq-emoji { font-size: 22px; }
+.wq-greet { font-size: 12px; color: var(--text-mut); font-weight: 600; }
+.wq-greet span { opacity: .8; }
+.wq-q { font-weight: 900; font-size: 15px; margin-bottom: 8px; }
+.wq-hint { font-weight: 600; color: var(--text-mut); font-size: 12.5px; }
+.wq-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.wq-opt {
+  border: 2px solid var(--border); border-radius: 10px;
+  background: var(--surface); color: var(--text);
+  padding: 9px 8px; font-weight: 700; font-size: 14px;
+}
+.wq-opt.good { border-color: var(--brand); background: var(--brand-soft); }
+.wq-opt.bad { border-color: var(--red); background: var(--red-soft); }
+.wq-feedback { font-size: 13px; font-weight: 700; color: var(--text-mut); margin-top: 8px; }
+.wq-mn {
+  font-size: 12.5px; background: var(--gold-soft);
+  border-left: 3px solid var(--gold); border-radius: 6px; padding: 5px 8px; margin-top: 5px;
+}
+.wq-retry { color: var(--blue); }
+.world-controls {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 4px 0;
+  user-select: none; -webkit-user-select: none;
+}
+.wc-pad { display: flex; gap: 10px; }
+.wc-btn {
+  width: 62px; height: 62px; border-radius: 50%;
+  border: 2px solid var(--border); background: var(--surface);
+  font-size: 22px; font-weight: 900;
+  box-shadow: 0 4px 0 var(--border);
+  touch-action: none;
+}
+.wc-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--border); }
+.wc-jump { background: var(--brand); color: #fff; border-color: var(--brand-dark); box-shadow: 0 4px 0 var(--brand-dark); }
+.world-help { text-align: center; margin-top: 10px; }
+.world-stars-big { font-size: 30px; letter-spacing: 4px; margin: -4px 0 10px; }
+@media (min-width: 920px) {
+  .world-controls { display: none; } /* en escritorio, teclado */
+}
+
 /* ---------- Confeti ---------- */
 .confetti {
   position: fixed; top: -14px; z-index: 96;
