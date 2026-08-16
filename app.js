@@ -28,6 +28,7 @@ const defaultState = () => ({
   goalRewarded: null,     // día en que ya se cobró el cofre diario
   sound: true,            // efectos de sonido
   musicShown: {},         // id de canción -> true (playlist descubierta)
+  theme: "auto",          // "auto" | "light" | "dark"
 });
 
 let S = loadState();
@@ -42,6 +43,23 @@ function loadState() {
 
 function saveState() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(S)); } catch (e) {}
+}
+
+/* ---------------- Tema claro / oscuro ---------------- */
+
+function applyTheme() {
+  const root = document.documentElement;
+  if (S.theme === "light" || S.theme === "dark") root.dataset.theme = S.theme;
+  else delete root.dataset.theme;
+  // Color de la barra del navegador acorde al tema efectivo
+  const dark = S.theme === "dark" ||
+    (S.theme !== "light" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = dark ? "#131f24" : "#ffffff";
+}
+
+if (window.matchMedia) {
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
 }
 
 function todayStr() {
@@ -818,6 +836,11 @@ function renderHome() {
 
   const upd = app.querySelector("#check-update");
   if (upd) upd.addEventListener("click", checkForUpdate);
+  const thm = app.querySelector("#toggle-theme");
+  if (thm) thm.addEventListener("click", () => {
+    S.theme = S.theme === "auto" ? "dark" : S.theme === "dark" ? "light" : "auto";
+    saveState(); applyTheme(); render();
+  });
   const exp = app.querySelector("#export-progress");
   if (exp) exp.addEventListener("click", exportProgress);
   const imp = app.querySelector("#import-progress");
@@ -868,9 +891,27 @@ function vocabHTML() {
       </div>`).join("")}`;
 }
 
+// Saludo según la hora, en euskera y con su traducción: cada visita enseña.
+function heroHTML() {
+  const h = new Date().getHours();
+  const eu = h >= 6 && h < 14 ? "Egun on" : h >= 14 && h < 21 ? "Arratsalde on" : "Gabon";
+  const es = { "Egun on": "buenos días", "Arratsalde on": "buenas tardes", "Gabon": "buenas noches" }[eu];
+  const sub = S.streak > 0
+    ? `«${es}» · Llevas ${S.streak} día${S.streak === 1 ? "" : "s"} de racha, ¡a por hoy! 🔥`
+    : `«${es}» · Una lección hoy y la racha empieza a arder 🔥`;
+  return `
+    <section class="hero">
+      <div class="hero-owl">🦉</div>
+      <div>
+        <h1>${eu}!</h1>
+        <p>${sub}</p>
+      </div>
+    </section>`;
+}
+
 function pathHTML() {
   const a1 = LEVELS[0];
-  let html = goalCardHTML() + `
+  let html = heroHTML() + goalCardHTML() + `
     <section class="level-banner">
       <div class="level-badge">A1</div>
       <div>
@@ -1062,6 +1103,9 @@ function profileHTML() {
     <div class="profile-card">
       <h2>⚙️ Ajustes</h2>
       <button class="btn btn-ghost btn-full settings-btn" id="check-update">🔄 Buscar actualización</button>
+      <button class="btn btn-ghost btn-full settings-btn" id="toggle-theme">
+        ${S.theme === "dark" ? "🌙 Tema: oscuro" : S.theme === "light" ? "☀️ Tema: claro" : "🌗 Tema: automático"}
+      </button>
       <button class="btn btn-ghost btn-full settings-btn" id="toggle-sound">
         ${S.sound === false ? "🔇 Efectos de sonido: desactivados" : "🔊 Efectos de sonido: activados"}
       </button>
@@ -1551,4 +1595,5 @@ document.addEventListener("keydown", e => {
 
 /* ---------------- Arranque ---------------- */
 
+applyTheme();
 render();
