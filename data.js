@@ -988,6 +988,56 @@ const MNEMONICS = {
 };
 
 /* ------------------------------------------------------------
+   Mundos 2D (plataformas): uno por unidad, tras el Repaso.
+   Superar el mundo desbloquea la unidad siguiente. Cada puerta
+   tiene SITUACIONES con sentido narrativo (no preguntas al azar)
+   y el día avanza durante el nivel. difficulty crecerá en los
+   mundos siguientes (más huecos, plataformas móviles…).
+   ------------------------------------------------------------ */
+const WORLD_META = {
+  agurrak: {
+    num: 1,
+    difficulty: 1,
+    boss: "Basajaun",
+    bossEmoji: "🌲",
+    bossIntro: "GRRR! Gaua dator… hiru erantzun zuzen edo ez zara pasako!",
+    bossIntroEs: "¡Cae la noche… tres respuestas correctas o no pasarás!",
+    gates: [
+      {
+        npc: "Artzaina", emoji: "🐑", skin: "#a06a48", cloth: "#3f6ea5", hat: "#5c4632",
+        greet: "Egun on! Artzaina naiz.", greetEs: "¡Buenos días! Soy el pastor.",
+        situations: [
+          { q: "Es por la mañana y el pastor te saluda. ¿Qué le dices?", options: ["Egun on", "Gabon", "Agur", "Barkatu"], answer: "Egun on", speak: "Egun on!" },
+          { q: "El pastor te pregunta «Zer moduz?». ¿Qué le respondes?", options: ["Ondo, eskerrik asko", "Bihar arte", "Ez horregatik", "Ongi etorri"], answer: "Ondo, eskerrik asko", speak: "Ondo, eskerrik asko" },
+        ],
+      },
+      {
+        npc: "Amona", emoji: "🌼", skin: "#c98d66", cloth: "#8a5fae", hat: "#d8d8d8",
+        greet: "Kaixo, maitea! Pintxo bat nahi?", greetEs: "¡Hola, querida! ¿Quieres un pintxo?",
+        situations: [
+          { q: "La amona te regala un pintxo. ¿Qué le dices?", options: ["Eskerrik asko", "Barkatu", "Ez", "Agur"], answer: "Eskerrik asko", speak: "Eskerrik asko!" },
+          { q: "Le das las gracias y ella te contesta…", options: ["Ez horregatik", "Gero arte", "Egun on", "Mesedez"], answer: "Ez horregatik", speak: "Ez horregatik" },
+        ],
+      },
+      {
+        npc: "Tabernaria", emoji: "🍷", skin: "#b07850", cloth: "#824e3d", hat: "#2e2e38",
+        greet: "Arratsalde on! Sartu, sartu!", greetEs: "¡Buenas tardes! ¡Pasa, pasa!",
+        situations: [
+          { q: "Ya es media tarde y entras en la taberna. ¿Cómo saludas?", options: ["Arratsalde on", "Egun on", "Gabon", "Kaixo eta agur"], answer: "Arratsalde on", speak: "Arratsalde on!" },
+          { q: "Al salir tropiezas con una silla. ¿Qué dices?", options: ["Barkatu", "Ez horregatik", "Bai", "Gero arte"], answer: "Barkatu", speak: "Barkatu!" },
+          { q: "Te despides: volverás mañana. ¿Qué dices?", options: ["Bihar arte", "Ongi etorri", "Mesedez", "Egun on"], answer: "Bihar arte", speak: "Bihar arte!" },
+        ],
+      },
+    ],
+    friend: {
+      name: "Alvaro", label: "Álvaro",
+      greet: "Kaixo, Nao! Ni Alvaro naiz. Gabon! Bagoaz hurrengo mundura?",
+      greetEs: "¡Hola, Nao! Soy Álvaro. ¡Buenas noches! ¿Nos vamos al siguiente mundo?",
+    },
+  },
+};
+
+/* ------------------------------------------------------------
    Mini-historias A1: diálogos cortos con preguntas de
    comprensión, como la parte de lectura del examen oficial.
    Cada historia se desbloquea al empezar su unidad.
@@ -1291,7 +1341,7 @@ const TIPS = [
 
 // Versión de la app: se muestra en el perfil y debe coincidir con la
 // caché del service worker (sw.js). Subir en cada release.
-const APP_VERSION = "3.1.0";
+const APP_VERSION = "3.2.0";
 const APP_DATE = "16/08/2026";
 
 // Nº de lecciones por unidad (la última es el repaso/examen de la unidad)

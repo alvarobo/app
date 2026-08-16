@@ -127,7 +127,16 @@ function level() { return Math.floor(S.xp / 100) + 1; }
 function levelPct() { return S.xp % 100; }
 
 function unitDone(u) { return (S.progress[u.id] || 0) >= LESSONS_PER_UNIT; }
-function unitUnlocked(idx) { return idx === 0 || unitDone(COURSE[idx - 1]); }
+
+// Si la unidad tiene mundo 2D, superarlo es la puerta a la siguiente.
+function worldGateDone(u) {
+  if (typeof WORLD_META === "undefined" || !WORLD_META[u.id]) return true;
+  return !!(S.worlds && S.worlds[u.id] && S.worlds[u.id].done);
+}
+
+function unitUnlocked(idx) {
+  return idx === 0 || (unitDone(COURSE[idx - 1]) && worldGateDone(COURSE[idx - 1]));
+}
 function allUnitsDone() { return COURSE.every(unitDone); }
 function examPassed() { return (S.progress[EXAM_A1.id] || 0) > 0; }
 function a1Pct() {
@@ -1424,23 +1433,9 @@ function potdHTML() {
     </section>`;
 }
 
-function worldBannerHTML() {
-  const w = (S.worlds || {})["agurrak"];
-  return `
-    <section class="world-banner">
-      <span class="world-banner-ico">🎮</span>
-      <div style="flex:1">
-        <div class="due-title">Mundo 1: Agurrak <span class="beta-tag">BETA</span></div>
-        <div class="due-sub">Plataformas 2D con Nao: estrellas, gente que te habla en euskera y el Basajaun al final
-        ${w ? ` · ${"⭐".repeat(w.stars)}${w.done ? " ✓" : ""}` : ""}</div>
-      </div>
-      <button class="btn btn-primary" data-world="agurrak">Jugar</button>
-    </section>`;
-}
-
 function pathHTML() {
   const a1 = LEVELS[0];
-  let html = heroHTML() + goalCardHTML() + worldBannerHTML() + potdHTML() + `
+  let html = heroHTML() + goalCardHTML() + potdHTML() + `
     <section class="level-banner">
       <div class="level-badge">A1</div>
       <div>
@@ -1483,6 +1478,25 @@ function pathHTML() {
             ${isDone ? `<span class="check-badge">✓</span>` : ""}
           </button>
           <span class="lesson-label">${label}</span>
+        </div>`;
+    }
+    // Nodo del mundo 2D: tras el Repaso, y es la puerta a la unidad siguiente.
+    const wm = typeof WORLD_META !== "undefined" ? WORLD_META[unit.id] : null;
+    if (wm) {
+      const wstate = (S.worlds || {})[unit.id];
+      const wdone = !!(wstate && wstate.done);
+      const wopen = unitDone(unit);
+      html += `
+        <div class="lesson-node">
+          ${wopen && !wdone ? `<div class="start-bubble">¡A jugar!</div>` : ""}
+          <button class="lesson-btn ${!wopen ? "locked" : ""} ${wdone ? "done" : ""}"
+            style="background:#8549ba"
+            ${wopen ? `data-world="${unit.id}"` : "disabled"}
+            aria-label="Mundo ${wm.num}">
+            ${wdone ? "🚀" : (wopen ? "🎮" : "🔒")}
+            ${wdone ? `<span class="check-badge">✓</span>` : ""}
+          </button>
+          <span class="lesson-label">Mundo ${wm.num}${wdone ? ` · ⭐${wstate.stars}` : ""}</span>
         </div>`;
     }
     html += `</div>`;
@@ -2076,11 +2090,15 @@ function nextExercise() {
 function renderResults() {
   const r = route;
   if (r.world) {
+    const wIdx = COURSE.findIndex(u => u.id === r.unitId);
+    const wm = typeof WORLD_META !== "undefined" ? WORLD_META[r.unitId] : { num: 1 };
+    const next = COURSE[wIdx + 1];
     app.innerHTML = `
       <div class="results">
-        <div class="big-emoji">🏰</div>
-        <h1 class="shine-text">¡Mundo 1 completado!</h1>
-        <p class="sub">Nao ha cruzado el arco — Basajaun garaituta! 🌲</p>
+        <div class="big-emoji">🚀</div>
+        <h1 class="shine-text">¡Mundo ${wm.num} superado!</h1>
+        <p class="sub">Nao y Álvaro despegan bajo las estrellas — Gabon, Basajaun! 🌲<br>
+        ${next && r.firstTime ? `🔓 Se ha desbloqueado la <b>Unidad ${wIdx + 2} · ${esc(next.title)}</b>` : "¡Gran vuelo!"}</p>
         <div class="world-stars-big">${"⭐".repeat(r.stars)}${"☆".repeat(Math.max(0, 5 - r.stars))}</div>
         <div class="result-cards">
           <div class="result-card xp"><div class="rc-title">Estrellas</div><div class="rc-value">${r.stars}/5</div></div>

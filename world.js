@@ -1,18 +1,16 @@
 /* ============================================================
-   Euskaltxo — Mundo 1 (beta): plataformas 2D
-   Nao recorre el campo vasco; los personajes le cierran el paso
-   hasta que responde en euskera, y el Basajaun guarda el arco
-   final. Canvas propio, sin dependencias, control táctil y teclado.
+   Euskaltxo — Mundos 2D (plataformas)
+   Un mundo por unidad, tras el Repaso; superarlo desbloquea la
+   unidad siguiente. En el Mundo 1 (Agurrak) el día avanza según
+   caminas: amaneces con el Artzaina, meriendas con la Amona,
+   entras a la taberna al atardecer, vences al Basajaun de noche
+   y despegas en cohete con Álvaro rumbo al Mundo 2.
    ============================================================ */
 
 "use strict";
 
 let W = null; // estado del mundo activo
 window.__W = () => W; // gancho de depuración/pruebas
-
-const WORLD_META = {
-  agurrak: { num: 1, boss: "Basajaun", bossEmoji: "🌲" },
-};
 
 function startWorld(unitId) {
   route = { view: "world", unitId };
@@ -23,12 +21,13 @@ function startWorld(unitId) {
 
 function renderWorld() {
   const unit = COURSE.find(u => u.id === route.unitId) || COURSE[0];
-  const meta = WORLD_META[unit.id] || { num: 1, boss: "Basajaun" };
+  const meta = WORLD_META[unit.id];
+  if (!meta) { route = { view: "home", tab: "learn" }; render(); return; }
   app.innerHTML = `
     <div class="world-wrap">
       <div class="world-hud">
         <button class="quit-btn" id="w-quit" aria-label="Salir">✕</button>
-        <span class="world-title">🎮 Mundo ${meta.num} · ${esc(unit.title.split("·")[0].trim())} <span class="beta-tag">BETA</span></span>
+        <span class="world-title">🎮 Mundo ${meta.num} · ${esc(unit.title.split("·")[0].trim())}</span>
         <span class="world-stars" id="w-stars">⭐ 0/5</span>
       </div>
       <div class="world-stage">
@@ -43,7 +42,7 @@ function renderWorld() {
         <button class="wc-btn wc-jump" id="wc-jump" aria-label="Saltar">A</button>
       </div>
       <p class="page-sub world-help">Mueve a <b>Nao</b> con ◀ ▶ y salta con <b>A</b> (teclado: flechas + espacio).
-      Coge las ⭐, responde a la gente en euskera para que te deje pasar y vence al ${esc(meta.boss)} para llegar al arco.</p>
+      El día pasa mientras avanzas: saluda bien a cada persona, coge las ⭐ y llega al cohete de <b>Álvaro</b> antes de que caiga la noche… tras vencer al ${esc(meta.boss)}.</p>
     </div>`;
   document.getElementById("w-quit").addEventListener("click", quitWorld);
   initWorld(unit, meta);
@@ -68,6 +67,7 @@ function destroyWorld() {
 function initWorld(unit, meta) {
   const canvas = document.getElementById("w-canvas");
   const groundY = 230;
+  const gateX = [560, 1280, 1900];
   W = {
     unit, meta, canvas,
     ctx: canvas.getContext("2d"),
@@ -79,7 +79,6 @@ function initWorld(unit, meta) {
     keys: {},
     paused: false,
     done: false,
-    // suelo por tramos (dos barrancos pequeños) y plataformas flotantes
     ground: [
       { x0: 0, x1: 780 },
       { x0: 850, x1: 1560 },
@@ -87,9 +86,9 @@ function initWorld(unit, meta) {
     ],
     platforms: [
       { x: 330, y: 178, w: 90 },
-      { x: 700, y: 168, w: 80 },   // ayuda a cruzar el 1er barranco
+      { x: 700, y: 168, w: 80 },
       { x: 1090, y: 175, w: 90 },
-      { x: 1555, y: 165, w: 90 },  // ayuda con el 2º barranco
+      { x: 1555, y: 165, w: 90 },
       { x: 2050, y: 175, w: 90 },
     ],
     stars: [
@@ -99,19 +98,17 @@ function initWorld(unit, meta) {
       { x: 1600, y: 133, got: false },
       { x: 2095, y: 145, got: false },
     ],
-    gates: [
-      { x: 560, npc: "Artzaina", emoji: "🐑", skin: "#a06a48", cloth: "#3f6ea5", hat: "#5c4632", greet: "Kaixo! Artzaina naiz.", greetEs: "¡Hola! Soy el pastor.", open: false },
-      { x: 1280, npc: "Amona", emoji: "🌼", skin: "#c98d66", cloth: "#8a5fae", hat: "#d8d8d8", greet: "Egun on, maitea!", greetEs: "¡Buenos días, querida!", open: false },
-      { x: 1900, npc: "Tabernaria", emoji: "🍷", skin: "#b07850", cloth: "#824e3d", hat: "#2e2e38", greet: "Arratsalde on! Zer nahi duzu?", greetEs: "¡Buenas tardes! ¿Qué quieres?", open: false },
-    ],
-    boss: { x: 2330, hp: 3, hpMax: 3, defeated: false, shake: 0 },
-    goalX: 2470,
+    gates: meta.gates.map((g, i) => ({ ...g, x: gateX[i], open: false, greeted: false, used: [] })),
+    boss: { x: 2280, hp: 3, hpMax: 3, defeated: false, shake: 0, greeted: false },
+    friendX: 2410,
+    rocketX: 2470,
+    met: false,
+    launch: { active: false, lift: 0, v: 0 },
     quiz: null,
     got: 0,
     onKeyDown: null, onKeyUp: null,
   };
 
-  // controles
   const k = W.keys;
   W.onKeyDown = e => {
     if (!W || route.view !== "world") return;
@@ -142,7 +139,7 @@ function initWorld(unit, meta) {
   bindHold("wc-jump", "jump");
   document.getElementById("wc-jump").addEventListener("pointerdown", () => { k.jumpQueued = true; });
 
-  speak("Kaixo, Nao!");
+  speak("Egun on, Nao!");
   W.raf = requestAnimationFrame(worldTick);
 }
 
@@ -163,11 +160,19 @@ function groundAt(x) {
 
 function worldUpdate() {
   const p = W.player, k = W.keys;
+
+  // secuencia de despegue
+  if (W.launch.active) {
+    W.launch.v += 0.16;
+    W.launch.lift += W.launch.v;
+    if (W.launch.lift > 330) { W.launch.active = false; completeWorld(); }
+    return;
+  }
+
   const SPEED = 2.4, GRAV = 0.5, JUMP = -9.2;
 
   p.vx = (k.right ? SPEED : 0) - (k.left ? SPEED : 0);
   if (p.vx !== 0) { p.dir = p.vx > 0 ? 1 : -1; p.frame++; }
-  // búfer de salto: un toque rapidísimo también cuenta
   if ((k.jump || k.jumpQueued) && p.onGround) { p.vy = JUMP; p.onGround = false; playSfx("tap"); }
   k.jumpQueued = false;
 
@@ -175,24 +180,20 @@ function worldUpdate() {
   p.vy += GRAV;
   p.y += p.vy;
 
-  // colisión: suelo por tramos
   p.onGround = false;
   const gy = groundAt(p.x);
   if (gy !== null && p.y >= gy && p.vy >= 0) { p.y = gy; p.vy = 0; p.onGround = true; }
-  // plataformas flotantes (solo desde arriba)
   for (const pl of W.platforms) {
     if (p.x > pl.x - 6 && p.x < pl.x + pl.w + 6 && p.vy >= 0 &&
         p.y >= pl.y && p.y - p.vy <= pl.y + 6) {
       p.y = pl.y; p.vy = 0; p.onGround = true;
     }
   }
-  // caída al barranco: volver al último punto seguro
   if (p.y > 300) {
     p.x = W.checkpoint; p.y = W.groundY; p.vy = 0;
     playSfx("buzz");
   }
 
-  // estrellas
   for (const s of W.stars) {
     if (!s.got && Math.abs(p.x - s.x) < 16 && Math.abs((p.y - 22) - s.y) < 20) {
       s.got = true; W.got++;
@@ -202,7 +203,6 @@ function worldUpdate() {
     }
   }
 
-  // puertas con personaje
   for (const g of W.gates) {
     if (!g.open && p.x > g.x - 26) {
       p.x = g.x - 26;
@@ -210,7 +210,6 @@ function worldUpdate() {
     }
   }
 
-  // jefe
   const b = W.boss;
   if (!b.defeated && p.x > b.x - 42) {
     p.x = b.x - 42;
@@ -218,14 +217,29 @@ function worldUpdate() {
   }
   if (b.shake > 0) b.shake--;
 
-  // meta: el arco
-  if (b.defeated && p.x >= W.goalX && !W.done) completeWorld();
+  // encuentro con Álvaro junto al cohete
+  if (b.defeated && !W.met && p.x >= W.friendX - 24) {
+    p.x = W.friendX - 24;
+    openFriendPanel();
+  }
 
-  // cámara
   W.cam = Math.max(0, Math.min(W.worldEnd - 480, p.x - 200));
 }
 
 /* ---------------- Preguntas ---------------- */
+
+// Pregunta situacional de puerta: primero las escritas a mano (dan
+// sentido a la escena), después el generador de la unidad.
+function makeGateQuestion(gate) {
+  const fresh = gate.situations.map((s, i) => i).filter(i => !gate.used.includes(i));
+  if (fresh.length) {
+    const i = pick(fresh);
+    gate.used.push(i);
+    const s = gate.situations[i];
+    return { title: s.q, options: shuffle(s.options.slice()), answer: s.answer, speakAfter: s.speak };
+  }
+  return makeWorldQuestion(W.unit);
+}
 
 function makeWorldQuestion(unit) {
   const drills = DRILLS[unit.id] || [];
@@ -255,12 +269,16 @@ function makeWorldQuestion(unit) {
 
 function openWorldQuiz(gate, boss) {
   W.paused = true;
-  const q = makeWorldQuestion(W.unit);
+  const q = boss ? makeWorldQuestion(W.unit) : makeGateQuestion(gate);
   W.quiz = { q, gate, boss };
   const who = boss
-    ? { name: W.meta.boss, emoji: W.meta.bossEmoji || "🌲", greet: "GRRR! Hiru erantzun zuzen… edo ez zara pasako!", greetEs: "¡Tres respuestas correctas… o no pasarás!" }
+    ? { name: W.meta.boss, emoji: W.meta.bossEmoji, greet: W.meta.bossIntro, greetEs: W.meta.bossIntroEs }
     : { name: gate.npc, emoji: gate.emoji, greet: gate.greet, greetEs: gate.greetEs };
-  if (!boss || W.boss.hp === W.boss.hpMax) speak(who.greet.replace(/GRRR! /, ""));
+  const target = boss || gate;
+  if (!target.greeted) {
+    target.greeted = true;
+    speak(who.greet.replace(/^GRRR! /, ""));
+  }
   const panel = document.getElementById("w-quiz");
   panel.hidden = false;
   panel.innerHTML = `
@@ -293,11 +311,11 @@ function worldQuizOk(btn) {
     W.boss.shake = 20;
     if (W.boss.hp <= 0) {
       W.boss.defeated = true;
+      W.checkpoint = W.boss.x + 20;
       playSfx("win");
       burst(document.getElementById("w-canvas"), { emoji: ["🌟", "🌲", "✨"], n: 18 });
-      closeWorldQuiz("Basajaun garaituta! (¡Basajaun vencido!) Corre al arco 🌳");
+      closeWorldQuiz("Basajaun garaituta! El cohete de Álvaro te espera 🚀");
     } else {
-      // siguiente pregunta del jefe, encadenada
       setTimeout(() => { W.quiz = null; openWorldQuiz(null, W.boss); }, 650);
       return;
     }
@@ -334,24 +352,79 @@ function closeWorldQuiz(msg) {
   }, 550);
 }
 
+/* ---------------- Álvaro y el cohete ---------------- */
+
+function openFriendPanel() {
+  W.met = true;
+  W.paused = true;
+  const f = W.meta.friend;
+  speak(f.greet);
+  const panel = document.getElementById("w-quiz");
+  panel.hidden = false;
+  panel.innerHTML = `
+    <div class="wq-head">
+      <span class="wq-emoji">🚀</span>
+      <div>
+        <b>${esc(f.label)}</b>
+        <div class="wq-greet">«${esc(f.greet)}» <span>${esc(f.greetEs)}</span></div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-full" id="w-launch" style="margin-top:6px">🚀 ¡Despegar al Mundo ${W.meta.num + 1}!</button>`;
+  document.getElementById("w-launch").addEventListener("click", () => {
+    panel.hidden = true;
+    panel.innerHTML = "";
+    W.paused = false;
+    W.launch.active = true;
+    playSfx("level");
+  });
+}
+
 function completeWorld() {
   W.done = true;
   const stars = W.got;
   S.worlds = S.worlds || {};
   const prev = S.worlds[W.unit.id] || { stars: 0 };
+  const firstTime = !prev.done;
   S.worlds[W.unit.id] = { stars: Math.max(prev.stars || 0, stars), done: true };
   addXp(30);
   S.gems += 15;
   bumpStreak();
   checkBadges();
   saveState();
-  playSfx("level");
   const unitId = W.unit.id;
   setTimeout(() => {
     destroyWorld();
-    route = { view: "results", world: true, unitId, stars, xp: 30, gems: 15 };
+    route = { view: "results", world: true, unitId, stars, xp: 30, gems: 15, firstTime };
     render();
-  }, 900);
+  }, 500);
+}
+
+/* ---------------- Ciclo del día ---------------- */
+
+function lerpC(a, b, t) {
+  return `rgb(${Math.round(a[0] + (b[0] - a[0]) * t)},${Math.round(a[1] + (b[1] - a[1]) * t)},${Math.round(a[2] + (b[2] - a[2]) * t)})`;
+}
+
+// paletas: amanecer → mediodía → atardecer → noche
+const DAY_STOPS = [
+  { at: 0.00, top: [159, 205, 233], hor: [222, 240, 247], sea: [127, 181, 207] },
+  { at: 0.35, top: [191, 227, 242], hor: [230, 244, 249], sea: [127, 181, 207] },
+  { at: 0.70, top: [242, 178, 107], hor: [247, 217, 160], sea: [156, 143, 160] },
+  { at: 1.00, top: [61, 74, 117], hor: [217, 138, 95], sea: [56, 66, 96] },
+];
+
+function dayPalette(prog) {
+  let a = DAY_STOPS[0], b = DAY_STOPS[DAY_STOPS.length - 1];
+  for (let i = 0; i < DAY_STOPS.length - 1; i++) {
+    if (prog >= DAY_STOPS[i].at && prog <= DAY_STOPS[i + 1].at) { a = DAY_STOPS[i]; b = DAY_STOPS[i + 1]; break; }
+  }
+  const t = (prog - a.at) / Math.max(0.0001, b.at - a.at);
+  return {
+    top: lerpC(a.top, b.top, t),
+    hor: lerpC(a.hor, b.hor, t),
+    sea: lerpC(a.sea, b.sea, t),
+    night: Math.max(0, (prog - 0.72) / 0.28), // 0..1 al final
+  };
 }
 
 /* ---------------- Dibujo ---------------- */
@@ -359,20 +432,43 @@ function completeWorld() {
 function worldDraw() {
   const { ctx, cam, t } = W;
   ctx.imageSmoothingEnabled = false;
+  const prog = Math.min(1, cam / (W.worldEnd - 480));
+  const pal = dayPalette(prog);
 
-  // cielo y mar (como en Jaizkibel)
+  // cielo, mar y hierba según la hora del día
   const sky = ctx.createLinearGradient(0, 0, 0, 270);
-  sky.addColorStop(0, "#bfe3f2");
-  sky.addColorStop(0.55, "#dcf0f7");
-  sky.addColorStop(0.62, "#9fc9dd");
-  sky.addColorStop(0.72, "#7fb5cf");
+  sky.addColorStop(0, pal.top);
+  sky.addColorStop(0.58, pal.hor);
+  sky.addColorStop(0.62, pal.sea);
   sky.addColorStop(0.78, "#8fce7c");
   sky.addColorStop(1, "#6db24f");
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, 480, 270);
 
+  // sol → se pone; luna y estrellas de noche
+  const sunX = 70 + prog * 340;
+  const sunY = 95 - Math.sin(prog * Math.PI) * 60;
+  ctx.fillStyle = prog < 0.6 ? "#fff3c4" : "#ff9e5e";
+  ctx.beginPath();
+  ctx.arc(sunX, sunY, 14, 0, Math.PI * 2);
+  ctx.fill();
+  if (pal.night > 0) {
+    ctx.globalAlpha = pal.night;
+    ctx.fillStyle = "#f2f0e4";
+    ctx.beginPath();
+    ctx.arc(400, 42, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#ffffff";
+    for (let i = 0; i < 24; i++) {
+      const sx = (i * 97 + 31) % 480;
+      const sy = (i * 53 + 11) % 120;
+      if ((t + i * 7) % 90 < 70) ctx.fillRect(sx, sy, 2, 2);
+    }
+    ctx.globalAlpha = 1;
+  }
+
   // nubes
-  ctx.fillStyle = "rgba(255,255,255,.85)";
+  ctx.fillStyle = `rgba(255,255,255,${0.85 - pal.night * 0.5})`;
   for (let i = 0; i < 4; i++) {
     const cx = ((i * 260 + t * 0.15) % (480 + 160)) - 80;
     const cy = 28 + (i % 2) * 26;
@@ -394,7 +490,6 @@ function worldDraw() {
   ctx.save();
   ctx.translate(-cam, 0);
 
-  // suelo por tramos
   for (const g of W.ground) {
     ctx.fillStyle = "#5da043";
     ctx.fillRect(g.x0, W.groundY, g.x1 - g.x0, 8);
@@ -404,16 +499,14 @@ function worldDraw() {
     for (let x = g.x0; x < g.x1; x += 14) ctx.fillRect(x, W.groundY - 3, 6, 3);
   }
 
-  // vallas de pasto (como en la foto)
   ctx.fillStyle = "#9a7c58";
   for (let x = 40; x < W.worldEnd; x += 90) {
-    if (groundAt(x) !== null && Math.abs(x - W.goalX) > 90) {
+    if (groundAt(x) !== null && Math.abs(x - W.rocketX) > 110) {
       ctx.fillRect(x, W.groundY - 18, 4, 18);
       ctx.fillRect(x - 12, W.groundY - 14, 28, 3);
     }
   }
 
-  // flores malva
   for (let i = 0; i < 40; i++) {
     const fx = 30 + i * 63;
     if (groundAt(fx) === null) continue;
@@ -423,7 +516,6 @@ function worldDraw() {
     ctx.fillRect(fx + 1, W.groundY - 3, 1, 3);
   }
 
-  // plataformas
   for (const pl of W.platforms) {
     ctx.fillStyle = "#7a5230";
     ctx.fillRect(pl.x, pl.y, pl.w, 8);
@@ -431,30 +523,31 @@ function worldDraw() {
     ctx.fillRect(pl.x, pl.y - 4, pl.w, 5);
   }
 
-  // estrellas
   for (const s of W.stars) {
     if (s.got) continue;
     drawStar(ctx, s.x, s.y + Math.sin((t + s.x) / 18) * 3);
   }
 
-  // puertas y personajes
   for (const g of W.gates) {
     drawGate(ctx, g);
     drawNpc(ctx, g);
   }
 
-  // jefe Basajaun
   drawBoss(ctx, W.boss, t);
 
-  // arco de hojas final (como la foto)
-  drawArch(ctx, W.goalX);
-
-  // Nao
-  drawNao(ctx, W.player, t);
+  // cohete y Álvaro (embarcados durante el despegue)
+  drawRocket(ctx, W.rocketX, W.launch, t);
+  if (!W.launch.active && !W.done) drawAlvaro(ctx, W.friendX, t);
+  if (!W.launch.active && !W.done) drawNao(ctx, W.player, t);
 
   ctx.restore();
 
-  // viñeta suave
+  // oscurecer la escena al caer la noche
+  if (pal.night > 0) {
+    ctx.fillStyle = `rgba(18,20,60,${pal.night * 0.22})`;
+    ctx.fillRect(0, 0, 480, 270);
+  }
+
   const vg = ctx.createRadialGradient(240, 135, 150, 240, 135, 330);
   vg.addColorStop(0, "rgba(0,0,0,0)");
   vg.addColorStop(1, "rgba(0,0,0,.14)");
@@ -484,10 +577,10 @@ function drawGate(ctx, g) {
   ctx.translate(g.x, W.groundY);
   ctx.fillStyle = "#8a6a42";
   if (g.open) {
-    ctx.fillRect(-2, -34, 5, 34);           // poste
+    ctx.fillRect(-2, -34, 5, 34);
     ctx.save();
     ctx.translate(2, -30);
-    ctx.rotate(-1.1);                        // hoja abierta
+    ctx.rotate(-1.1);
     ctx.fillRect(0, 0, 30, 4);
     ctx.fillRect(0, 10, 30, 4);
     ctx.restore();
@@ -505,20 +598,15 @@ function drawNpc(ctx, g) {
   const x = g.x + 52, y = W.groundY;
   ctx.save();
   ctx.translate(x, y);
-  // cuerpo
   ctx.fillStyle = g.cloth;
   ctx.fillRect(-7, -26, 14, 16);
-  // cabeza
   ctx.fillStyle = g.skin;
   ctx.fillRect(-5, -38, 10, 12);
-  // sombrero / pelo
   ctx.fillStyle = g.hat;
   ctx.fillRect(-7, -41, 14, 5);
-  // piernas
   ctx.fillStyle = "#2e2e38";
   ctx.fillRect(-6, -10, 5, 10);
   ctx.fillRect(1, -10, 5, 10);
-  // nombre
   ctx.font = "8px monospace";
   ctx.textAlign = "center";
   ctx.fillStyle = "rgba(0,0,0,.65)";
@@ -527,25 +615,21 @@ function drawNpc(ctx, g) {
 }
 
 function drawBoss(ctx, b, t) {
-  if (b.defeated && t % 2 === 0) return; // parpadea vencido
+  if (b.defeated && t % 2 === 0) return;
   const shake = b.shake > 0 ? Math.sin(t) * 2 : 0;
   const x = b.x + shake, y = W.groundY;
   ctx.save();
   ctx.translate(x, y);
   const breathe = Math.sin(t / 22) * 2;
-  // cuerpo peludo
   ctx.fillStyle = "#5c4632";
   ctx.fillRect(-20, -58 - breathe, 40, 58 + breathe);
   ctx.fillStyle = "#6f5740";
   for (let i = 0; i < 7; i++) ctx.fillRect(-20 + i * 6, -58 - breathe + (i % 2) * 4, 3, 54);
-  // cara
   ctx.fillStyle = "#8a6a4c";
   ctx.fillRect(-12, -52 - breathe, 24, 16);
-  // ojos (rojos hasta vencerlo)
   ctx.fillStyle = b.defeated ? "#7fd97a" : "#e04b3a";
   ctx.fillRect(-8, -48 - breathe, 5, 4);
   ctx.fillRect(3, -48 - breathe, 5, 4);
-  // corona de ramas
   ctx.fillStyle = "#3e7d33";
   ctx.fillRect(-16, -62 - breathe, 32, 5);
   ctx.font = "8px monospace";
@@ -555,66 +639,124 @@ function drawBoss(ctx, b, t) {
   ctx.restore();
 }
 
-function drawArch(ctx, gx) {
+// Cohete blanco de nariz roja; con llama y despegue al final.
+function drawRocket(ctx, x, launch, t) {
+  const lift = launch.lift || 0;
   ctx.save();
-  ctx.translate(gx, W.groundY);
-  // dos matas laterales + copa: el arco de hojas
-  ctx.fillStyle = "#2f6b2a";
+  ctx.translate(x, W.groundY - lift);
+  // patas
+  ctx.strokeStyle = "#9aa2ad";
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.ellipse(-26, -30, 18, 34, 0, 0, Math.PI * 2);
-  ctx.ellipse(26, -30, 18, 34, 0, 0, Math.PI * 2);
-  ctx.ellipse(0, -62, 40, 20, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#3e8a36";
+  ctx.moveTo(-10, 0); ctx.lineTo(-16, 8);
+  ctx.moveTo(10, 0); ctx.lineTo(16, 8);
+  ctx.stroke();
+  // cuerpo
+  ctx.fillStyle = "#eceef2";
+  ctx.fillRect(-12, -52, 24, 52);
+  // nariz
+  ctx.fillStyle = "#d94b3a";
   ctx.beginPath();
-  ctx.ellipse(-24, -34, 12, 26, 0, 0, Math.PI * 2);
-  ctx.ellipse(24, -34, 12, 26, 0, 0, Math.PI * 2);
-  ctx.ellipse(0, -60, 30, 14, 0, 0, Math.PI * 2);
+  ctx.moveTo(-12, -52); ctx.lineTo(0, -70); ctx.lineTo(12, -52);
+  ctx.closePath();
   ctx.fill();
-  // florecillas blancas
-  ctx.fillStyle = "#e8f2d8";
-  for (let i = 0; i < 10; i++) {
-    ctx.fillRect(-36 + (i * 17) % 72, -66 + (i * 13) % 40, 2, 2);
+  // aletas
+  ctx.fillStyle = "#d94b3a";
+  ctx.beginPath();
+  ctx.moveTo(-12, -14); ctx.lineTo(-22, 0); ctx.lineTo(-12, 0); ctx.closePath();
+  ctx.moveTo(12, -14); ctx.lineTo(22, 0); ctx.lineTo(12, 0); ctx.closePath();
+  ctx.fill();
+  // ventana
+  ctx.fillStyle = "#7fd0f0";
+  ctx.beginPath();
+  ctx.arc(0, -38, 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#9aa2ad";
+  ctx.stroke();
+  // llama de despegue
+  if (launch.active) {
+    const f = 10 + (t % 4) * 4;
+    ctx.fillStyle = "#ffb340";
+    ctx.beginPath();
+    ctx.moveTo(-8, 0); ctx.lineTo(0, f + 8); ctx.lineTo(8, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#ff6b35";
+    ctx.beginPath();
+    ctx.moveTo(-4, 0); ctx.lineTo(0, f); ctx.lineTo(4, 0);
+    ctx.closePath();
+    ctx.fill();
   }
   ctx.restore();
 }
 
+// Álvaro: pelo castaño corto, barba, camiseta negra, jersey beige
+// sobre los hombros, pendiente y sonrisa.
+function drawAlvaro(ctx, x, t) {
+  const P = 2;
+  const y = W.groundY;
+  const wave = Math.sin(t / 14) > 0.6; // saluda de vez en cuando
+  ctx.save();
+  ctx.translate(x, y);
+  const px = (dx, dy, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(dx * P, dy * P, w * P, h * P); };
+  // zapatillas blancas
+  px(-5, -2, 4, 2, "#e8e8e8");
+  px(1, -2, 4, 2, "#e8e8e8");
+  // pantalón gris oscuro
+  px(-4, -9, 8, 7, "#3a3f4a");
+  // camiseta negra
+  px(-4, -16, 8, 7, "#22232a");
+  // jersey beige sobre los hombros (banda y nudo)
+  px(-5, -16, 10, 2, "#d8cbb2");
+  px(-1, -14, 2, 3, "#d8cbb2");
+  // brazos
+  px(-6, -15, 2, 4, "#e0b18e");
+  if (wave) px(4, -20, 2, 5, "#e0b18e"); // saludando
+  else px(4, -15, 2, 4, "#e0b18e");
+  // cara
+  px(-3, -22, 6, 5, "#e0b18e");
+  // barba
+  px(-3, -18, 6, 2, "#4a3828");
+  // sonrisa
+  px(-1, -18, 2, 1, "#ffffff");
+  // pelo castaño corto
+  px(-3, -24, 6, 2, "#5a4632");
+  px(-4, -23, 1, 2, "#5a4632");
+  px(3, -23, 1, 2, "#5a4632");
+  // pendiente
+  px(3, -20, 1, 1, "#dcdcdc");
+  ctx.restore();
+  ctx.font = "8px monospace";
+  ctx.textAlign = "center";
+  ctx.fillStyle = "rgba(0,0,0,.6)";
+  ctx.fillText("Álvaro", x, y - 52);
+}
+
 // Nao: gorra beige, camiseta crema, pantalón teja ancho, zapatillas rosas.
 function drawNao(ctx, p, t) {
-  const P = 2; // tamaño de "píxel"
+  const P = 2;
   const x = Math.round(p.x), yFeet = Math.round(p.y);
   const step = p.onGround && Math.abs(p.vx) > 0 ? Math.floor(p.frame / 6) % 2 : 0;
   const jump = !p.onGround;
   ctx.save();
   ctx.translate(x, yFeet);
   const px = (dx, dy, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(dx * P, dy * P, w * P, h * P); };
-
-  // zapatillas rosas (animación de paso)
   const legL = jump ? -1 : (step === 0 ? 0 : -1);
   const legR = jump ? -1 : (step === 0 ? -1 : 0);
   px(-5, -2 + legL, 4, 2, "#f0958a");
   px(1, -2 + legR, 4, 2, "#f0958a");
-  // pantalón ancho teja
   px(-5, -10, 10, 8 + (jump ? 0 : 1), "#96524a");
   px(-6, -7, 12, 3, "#96524a");
-  // camiseta crema
   px(-4, -16, 8, 6, "#f0e9d6");
-  // brazos
   px(-6, -15, 2, 4, "#c68a5e");
   px(4, -15, 2, 4, jump ? "#f0e9d6" : "#c68a5e");
-  if (jump) px(4, -19, 2, 4, "#c68a5e"); // brazo arriba al saltar
-  // cara
+  if (jump) px(4, -19, 2, 4, "#c68a5e");
   px(-3, -21, 6, 5, "#c68a5e");
-  // sonrisa
   px(-1, -18, 2, 1, "#8a4a3a");
-  // moño oscuro detrás
   px(p.dir > 0 ? -5 : 3, -23, 2, 3, "#33241f");
-  // gorra beige con visera hacia delante
   px(-4, -24, 8, 3, "#d8c49a");
   px(p.dir > 0 ? 2 : -6, -22, 4, 1, "#d8c49a");
   ctx.restore();
-
-  // etiqueta
   ctx.font = "8px monospace";
   ctx.textAlign = "center";
   ctx.fillStyle = "rgba(0,0,0,.6)";
