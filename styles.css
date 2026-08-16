@@ -413,6 +413,88 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* ---------- Examen ---------- */
 .exam-btn { font-size: 34px; }
 
+/* ---------- Meta diaria ---------- */
+.goal-card {
+  display: flex; align-items: center; gap: 12px;
+  border: 2px solid var(--gray-2); border-radius: var(--radius);
+  padding: 12px 16px; margin-bottom: 14px;
+}
+.goal-card.met { border-color: var(--green); background: var(--green-light); }
+.goal-ico { font-size: 24px; }
+.goal-title { font-size: 13px; font-weight: 900; color: var(--gray-4); margin-bottom: 5px; }
+.goal-card.met .goal-title { color: var(--green-dark); }
+.goal-bar { height: 10px; background: var(--gray-2); border-radius: 6px; overflow: hidden; }
+.goal-bar div { height: 100%; background: var(--green); border-radius: 6px; transition: width .4s; }
+.goal-num { font-size: 13px; font-weight: 900; color: var(--gray-4); font-variant-numeric: tabular-nums; }
+
+/* ---------- Completar hueco ---------- */
+.fill-es { font-size: 15px; font-weight: 700; color: var(--gray-4); margin-bottom: 10px; }
+.fill-sentence {
+  font-size: 21px; font-weight: 800; line-height: 1.6;
+  margin-bottom: 22px;
+}
+.fill-sentence .gap {
+  display: inline-block; min-width: 70px; text-align: center;
+  border-bottom: 3px solid var(--gray-3);
+  color: var(--gray-3); padding: 0 6px;
+}
+.fill-sentence .gap.filled { color: var(--blue-dark); border-color: var(--blue); }
+
+/* ---------- Vocabulario ---------- */
+.page-title { font-size: 22px; font-weight: 900; margin-bottom: 6px; }
+.page-sub { font-size: 14px; color: var(--gray-4); font-weight: 600; margin-bottom: 18px; }
+.vocab-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 0; border-bottom: 1px solid var(--gray-1);
+}
+.vocab-row:last-child { border-bottom: none; }
+.vocab-say {
+  width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+  background: #ddf4ff; font-size: 15px;
+}
+.vocab-say:active { transform: translateY(1px); }
+.vocab-eu { font-weight: 900; font-size: 15px; min-width: 90px; }
+.vocab-es { flex: 1; font-weight: 600; font-size: 14px; color: var(--gray-4); }
+
+/* ---------- Logros ---------- */
+.badges-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.badge {
+  border: 2px solid var(--gray-2); border-radius: 12px;
+  padding: 12px 10px; text-align: center;
+  display: flex; flex-direction: column; gap: 3px;
+  opacity: .45; filter: grayscale(1);
+}
+.badge.earned { opacity: 1; filter: none; border-color: var(--gold); background: #fffaf0; }
+.badge-ico { font-size: 26px; }
+.badge-name { font-weight: 900; font-size: 13px; }
+.badge-desc { font-size: 11px; color: var(--gray-4); font-weight: 600; }
+
+/* ---------- Curiosidades ---------- */
+.tip-card {
+  max-width: 420px; text-align: left;
+  border: 2px solid var(--gray-2); border-left: 4px solid var(--gold);
+  border-radius: 12px; padding: 12px 16px; margin-bottom: 22px;
+  font-size: 14px; font-weight: 600; color: var(--gray-4); line-height: 1.5;
+}
+.tip-card b { color: var(--text); }
+
+/* ---------- Confeti ---------- */
+.confetti {
+  position: fixed; top: -14px; z-index: 80;
+  width: 10px; height: 14px; border-radius: 2px;
+  pointer-events: none;
+  animation: confettiFall linear forwards;
+}
+@keyframes confettiFall {
+  to { transform: translateY(105vh) rotate(720deg); }
+}
+@media (prefers-reduced-motion: reduce) { .confetti { display: none; } }
+
+/* ---------- Transición entre ejercicios ---------- */
+.exercise > * { animation: fadeSlide .25s ease both; }
+@keyframes fadeSlide { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) { .exercise > * { animation: none; } }
+
 @media (max-width: 420px) {
   .lesson-node:nth-child(4n+2) { transform: translateX(-34px); }
   .lesson-node:nth-child(4n+4) { transform: translateX(34px); }

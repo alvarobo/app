@@ -20,6 +20,13 @@ const defaultState = () => ({
   streak: 0,
   lastDay: null,          // "YYYY-MM-DD" del último día con lección completada
   progress: {},           // unitId -> nº de lecciones completadas
+  wordStats: {},          // eu -> {ok, ko} para el repaso inteligente
+  badges: {},             // id de logro -> true
+  perfects: 0,            // lecciones perfectas acumuladas
+  goalDay: null,          // día de la meta diaria en curso
+  goalXp: 0,              // XP conseguidos hoy
+  goalRewarded: null,     // día en que ya se cobró el cofre diario
+  sound: true,            // efectos de sonido
 });
 
 let S = loadState();
@@ -94,6 +101,75 @@ function learnedWords() {
   const out = [];
   for (const u of COURSE) if ((S.progress[u.id] || 0) > 0) out.push(...u.words);
   return out;
+}
+
+/* ---------------- Repaso inteligente (fuerza por palabra) ---------------- */
+
+function noteWord(eu, ok) {
+  const st = S.wordStats[eu] || (S.wordStats[eu] = { ok: 0, ko: 0 });
+  if (ok) st.ok++; else st.ko++;
+}
+
+function wordStrength(eu) {
+  const st = S.wordStats[eu];
+  if (!st || st.ok + st.ko === 0) return 0;
+  return st.ok / (st.ok + st.ko);
+}
+
+// Las palabras falladas o nunca practicadas van primero.
+function weakestWords(n) {
+  const pool = learnedWords();
+  const scored = pool.map(w => {
+    const st = S.wordStats[w.eu];
+    const s = st ? st.ok / (st.ok + st.ko || 1) : 0.35; // sin datos: prioridad media
+    return { w, s: s + Math.random() * 0.15 };          // algo de variedad
+  });
+  scored.sort((a, b) => a.s - b.s);
+  return scored.slice(0, n).map(x => x.w);
+}
+
+/* ---------------- Meta diaria ---------------- */
+
+function goalToday() {
+  if (S.goalDay !== todayStr()) { S.goalDay = todayStr(); S.goalXp = 0; }
+  return S.goalXp;
+}
+
+function addXp(n) {
+  S.xp += n;
+  goalToday();
+  const before = S.goalXp;
+  S.goalXp += n;
+  if (before < DAILY_GOAL_XP && S.goalXp >= DAILY_GOAL_XP && S.goalRewarded !== todayStr()) {
+    S.goalRewarded = todayStr();
+    S.gems += 10;
+    setTimeout(() => toast("🎯 ¡Meta diaria cumplida! +10 💎"), 900);
+  }
+}
+
+/* ---------------- Logros ---------------- */
+
+const BADGES = [
+  { id: "first", icon: "🐣", t: "Lehen urratsa", d: "Completa tu primera lección", test: () => totalLessonsDone() >= 1 },
+  { id: "ten", icon: "📚", t: "Ikasle fina", d: "Completa 10 lecciones", test: () => totalLessonsDone() >= 10 },
+  { id: "half", icon: "🧗", t: "Erdibidean", d: "Completa 8 unidades", test: () => COURSE.filter(unitDone).length >= 8 },
+  { id: "all", icon: "🗺️", t: "Bidaiaria", d: "Completa las 16 unidades", test: () => allUnitsDone() },
+  { id: "exam", icon: "🎓", t: "A1 gainditua", d: "Aprueba el examen A1", test: () => examPassed() },
+  { id: "streak3", icon: "🔥", t: "Sutan", d: "Racha de 3 días", test: () => S.streak >= 3 },
+  { id: "streak7", icon: "🌋", t: "Astebete sutan", d: "Racha de 7 días", test: () => S.streak >= 7 },
+  { id: "xp500", icon: "⚡", t: "Indartsu", d: "Consigue 500 XP", test: () => S.xp >= 500 },
+  { id: "perfect5", icon: "💎", t: "Perfektua", d: "5 lecciones perfectas", test: () => S.perfects >= 5 },
+  { id: "words50", icon: "🗣️", t: "Hiztuna", d: "Practica 50 palabras distintas", test: () => Object.keys(S.wordStats).length >= 50 },
+  { id: "gems300", icon: "💰", t: "Aberatsa", d: "Acumula 300 gemas", test: () => S.gems >= 300 },
+];
+
+function checkBadges() {
+  for (const b of BADGES) {
+    if (!S.badges[b.id] && b.test()) {
+      S.badges[b.id] = true;
+      setTimeout(() => toast(`🏆 Logro: ${b.icon} ${b.t}`), 1600);
+    }
+  }
 }
 
 /* ---------------- Utilidades ---------------- */
@@ -200,6 +276,7 @@ document.addEventListener("pointerdown", function unlockAudio() {
 
 let audioCtx = null;
 function beep(freqs, dur = 0.13, type = "sine", gain = 0.12) {
+  if (S.sound === false) return;
   try {
     audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
     freqs.forEach((f, i) => {
@@ -248,6 +325,7 @@ function exChoice(word, pool, dir) {
     options, answer,
     accepts: dir === "eu-es" && word.alt ? [answer, ...word.alt] : [answer],
     solution: `${word.eu} = ${word.es}`,
+    wordKey: word.eu,
   };
 }
 
@@ -259,6 +337,7 @@ function exListen(word, pool) {
     speakText: word.eu,
     options, answer: word.eu, accepts: [word.eu],
     solution: `${word.eu} = ${word.es}`,
+    wordKey: word.eu,
   };
 }
 
@@ -296,6 +375,43 @@ function exType(item) {
     answer: item.es,
     accepts,
     solution: `${item.eu} = ${item.es}`,
+    wordKey: item.eu,
+  };
+}
+
+// Completar hueco con las estructuras gramaticales de la unidad.
+function exDrill(d) {
+  return {
+    type: "fill",
+    title: "Completa la frase",
+    sentence: d.q,
+    esText: d.hint ? `Pista: ${d.hint}` : "",
+    options: shuffle(d.options.slice()),
+    answer: d.answer,
+    accepts: [d.answer],
+    solution: d.q.replace("___", d.answer),
+  };
+}
+
+// Completar hueco generado a partir de una frase de la unidad.
+function exFillPhrase(phrase, unit) {
+  const tokens = phrase.eu.split(" ");
+  const idx = Math.floor(Math.random() * tokens.length);
+  const answer = tokens[idx];
+  const gapped = tokens.map((t, i) => (i === idx ? "___" : t)).join(" ");
+  const pool = [...new Set([
+    ...unit.phrases.flatMap(p => p.eu.split(" ")),
+    ...unit.words.map(w => w.eu.split(" ")[0]),
+  ])].filter(t => t !== answer);
+  return {
+    type: "fill",
+    title: "Completa la frase",
+    sentence: gapped,
+    esText: `«${phrase.es}»`,
+    options: shuffle([answer, ...sample(pool, 3)]),
+    answer,
+    accepts: [answer],
+    solution: phrase.eu,
   };
 }
 
@@ -315,37 +431,36 @@ function buildLesson(unit, lessonIdx) {
 
   const exs = [];
   const w = () => pick(words);
+  const drills = DRILLS[unit.id] || [];
 
   exs.push(exChoice(w(), unit.words, "eu-es"));
   exs.push(exChoice(w(), unit.words, "es-eu"));
   exs.push(exListen(w(), unit.words));
+  if (drills.length) exs.push(exDrill(drills[(lessonIdx * 2) % drills.length]));
   exs.push(exMatch(unit.words));
-  exs.push(exChoice(w(), unit.words, "es-eu"));
   if (unit.phrases.length) exs.push(exWordbank(pick(unit.phrases), unit));
   exs.push(exType(w()));
+  if (unit.phrases.length) exs.push(exFillPhrase(pick(unit.phrases), unit));
   exs.push(exListen(w(), unit.words));
-  if (unit.phrases.length) exs.push(exWordbank(pick(unit.phrases), unit));
+  if (drills.length > 1) exs.push(exDrill(drills[(lessonIdx * 2 + 1) % drills.length]));
   exs.push(exChoice(w(), unit.words, "eu-es"));
 
   return exs.slice(0, EXERCISES_PER_LESSON);
 }
 
-// Sesión de práctica: repaso de todo lo aprendido (no gasta vidas).
+// Práctica inteligente: repasa primero tus palabras más débiles
+// (falladas o nunca practicadas). No gasta vidas.
 function buildPractice() {
   const pool = learnedWords();
-  const units = COURSE.filter(u => (S.progress[u.id] || 0) > 0);
-  const exs = [];
-  for (let i = 0; i < 8; i++) {
-    const word = pick(pool);
+  const words = weakestWords(8);
+  const exs = words.map((word, i) => {
     const kind = i % 4;
-    if (kind === 0) exs.push(exChoice(word, pool, "eu-es"));
-    else if (kind === 1) exs.push(exChoice(word, pool, "es-eu"));
-    else if (kind === 2) exs.push(exListen(word, pool));
-    else exs.push(exMatch(pool));
-  }
-  const u = pick(units);
-  if (u && u.phrases.length) exs.push(exWordbank(pick(u.phrases), u));
-  return shuffle(exs).slice(0, 8);
+    if (kind === 0) return exChoice(word, pool, "eu-es");
+    if (kind === 1) return exChoice(word, pool, "es-eu");
+    if (kind === 2) return exListen(word, pool);
+    return exType(word);
+  });
+  return shuffle(exs);
 }
 
 // Examen A1: preguntas variadas de todas las unidades del nivel.
@@ -355,12 +470,16 @@ function buildExam() {
   for (let i = 0; i < EXAM_A1.size; i++) {
     const u = pick(COURSE);
     const w = pick(u.words);
-    const k = i % 5;
+    const k = i % 6;
     if (k === 0) exs.push(exChoice(w, pool, "eu-es"));
     else if (k === 1) exs.push(exChoice(w, pool, "es-eu"));
     else if (k === 2) exs.push(exListen(w, pool));
     else if (k === 3) exs.push(exWordbank(pick(u.phrases), u));
-    else exs.push(exType(w));
+    else if (k === 4) exs.push(exType(w));
+    else {
+      const drills = DRILLS[u.id];
+      exs.push(drills && drills.length ? exDrill(pick(drills)) : exChoice(w, pool, "eu-es"));
+    }
   }
   return shuffle(exs);
 }
@@ -423,11 +542,13 @@ function finishLesson() {
   const acc = total ? Math.round((s.correct / total) * 100) : 100;
   let xp = 0, gems = 0;
 
+  const tip = pick(TIPS);
+
   if (s.mode === "lesson") {
     xp = 10 + s.bestCombo;
-    if (s.wrong === 0) xp += 5; // bonus perfecto
+    if (s.wrong === 0) { xp += 5; S.perfects++; } // bonus perfecto
     gems = s.wrong === 0 ? 10 : 5;
-    S.xp += xp; S.gems += gems;
+    addXp(xp); S.gems += gems;
     bumpStreak();
     const unit = COURSE[s.unitIdx];
     const done = S.progress[unit.id] || 0;
@@ -435,24 +556,26 @@ function finishLesson() {
   } else if (s.mode === "exam") {
     if (s.wrong > EXAM_A1.maxErrors) { failExam(); return; }
     xp = EXAM_A1.xp; gems = EXAM_A1.gems;
-    S.xp += xp; S.gems += gems;
+    addXp(xp); S.gems += gems;
     S.progress[EXAM_A1.id] = 1;
     bumpStreak();
+    checkBadges();
     saveState();
     sfxWin();
-    route = { view: "results", exam: true, xp, gems, acc, perfect: s.wrong === 0 };
+    route = { view: "results", exam: true, xp, gems, acc, perfect: s.wrong === 0, tip };
     session = null;
     render();
     return;
   } else {
     xp = 5 + Math.min(5, s.bestCombo);
-    S.xp += xp;
+    addXp(xp);
     if (S.hearts < MAX_HEARTS) { S.hearts += 1; } // practicar recupera 1 vida
     bumpStreak();
   }
+  checkBadges();
   saveState();
   sfxWin();
-  route = { view: "results", xp, gems, acc, perfect: s.wrong === 0, mode: s.mode };
+  route = { view: "results", xp, gems, acc, perfect: s.wrong === 0, mode: s.mode, tip };
   session = null;
   render();
 }
@@ -497,6 +620,7 @@ function headerHTML() {
 function navHTML(tab) {
   const items = [
     { id: "learn", ico: "🏠", label: "Aprender" },
+    { id: "words", ico: "📖", label: "Palabras" },
     { id: "practice", ico: "💪", label: "Práctica" },
     { id: "profile", ico: "👤", label: "Perfil" },
   ];
@@ -515,6 +639,7 @@ function renderHome() {
   const tab = route.tab || "learn";
   let body = "";
   if (tab === "learn") body = pathHTML();
+  else if (tab === "words") body = vocabHTML();
   else if (tab === "practice") body = practiceHTML();
   else body = profileHTML();
 
@@ -547,11 +672,64 @@ function renderHome() {
 
   const refill = app.querySelector("#refill-hearts");
   if (refill) refill.addEventListener("click", tryRefillHearts);
+
+  app.querySelectorAll("[data-say]").forEach(b =>
+    b.addEventListener("click", () => speak(b.dataset.say)));
+
+  const snd = app.querySelector("#toggle-sound");
+  if (snd) snd.addEventListener("click", () => {
+    S.sound = S.sound === false ? true : false;
+    saveState(); render();
+  });
+}
+
+function goalCardHTML() {
+  const g = Math.min(goalToday(), DAILY_GOAL_XP);
+  const met = g >= DAILY_GOAL_XP;
+  return `
+    <section class="goal-card ${met ? "met" : ""}">
+      <span class="goal-ico">${met ? "✅" : "🎯"}</span>
+      <div style="flex:1">
+        <div class="goal-title">Meta diaria ${met ? "— ¡cumplida!" : ""}</div>
+        <div class="goal-bar"><div style="width:${Math.round((g / DAILY_GOAL_XP) * 100)}%"></div></div>
+      </div>
+      <span class="goal-num">${g}/${DAILY_GOAL_XP} XP</span>
+    </section>`;
+}
+
+function vocabHTML() {
+  const units = COURSE.filter(u => (S.progress[u.id] || 0) > 0);
+  if (!units.length) {
+    return `<div class="results" style="padding-top:40px">
+      <div class="big-emoji">📖</div>
+      <h1 style="color:var(--blue)">Palabras</h1>
+      <p class="sub">Completa tu primera lección y aquí verás<br>todas las palabras aprendidas con su fuerza.</p>
+    </div>`;
+  }
+  return `
+    <h1 class="page-title">📖 Tus palabras</h1>
+    <p class="page-sub">Toca 🔊 para escuchar. La barra muestra cómo la llevas: practica las débiles en la pestaña Práctica.</p>
+    ${units.map(u => `
+      <div class="profile-card">
+        <h2>${u.icon} ${esc(u.title)}</h2>
+        ${u.words.map(w => {
+          const st = S.wordStats[w.eu];
+          const pct = st ? Math.round(wordStrength(w.eu) * 100) : 0;
+          const color = !st ? "var(--gray-2)" : pct >= 75 ? "var(--green)" : pct >= 40 ? "var(--gold)" : "var(--red)";
+          return `
+            <div class="vocab-row">
+              <button class="vocab-say" data-say="${esc(w.eu)}" aria-label="Escuchar ${esc(w.eu)}">🔊</button>
+              <span class="vocab-eu">${esc(w.eu)}</span>
+              <span class="vocab-es">${esc(w.es)}</span>
+              <div class="mini-bar"><div style="width:${st ? Math.max(pct, 8) : 0}%;background:${color}"></div></div>
+            </div>`;
+        }).join("")}
+      </div>`).join("")}`;
 }
 
 function pathHTML() {
   const a1 = LEVELS[0];
-  let html = `
+  let html = goalCardHTML() + `
     <section class="level-banner">
       <div class="level-badge">A1</div>
       <div>
@@ -715,6 +893,20 @@ function profileHTML() {
           </div>`;
       }).join("")}
     </div>
+    <div class="profile-card">
+      <h2>🏆 Logros</h2>
+      <div class="badges-grid">
+        ${BADGES.map(b => `
+          <div class="badge ${S.badges[b.id] ? "earned" : ""}" title="${esc(b.d)}">
+            <span class="badge-ico">${b.icon}</span>
+            <span class="badge-name">${esc(b.t)}</span>
+            <span class="badge-desc">${esc(b.d)}</span>
+          </div>`).join("")}
+      </div>
+    </div>
+    <button class="btn btn-ghost btn-full" id="toggle-sound" style="margin-bottom:8px">
+      ${S.sound === false ? "🔇 Efectos de sonido: desactivados" : "🔊 Efectos de sonido: activados"}
+    </button>
     <div class="danger-zone"><button id="reset-progress">Borrar todo el progreso</button></div>`;
 }
 
@@ -800,9 +992,31 @@ function renderExercise(ex) {
     if (sp) sp.addEventListener("click", () => speak(ex.speakText));
     if (ex.type === "listen") {
       box.querySelector("#tts-reveal").addEventListener("click", revealListenWord);
-      if (ttsBroken) revealListenWord();
-      else setTimeout(() => speak(ex.speakText), 350);
+      if (ttsBroken) revealListenWord(); // muestra la palabra, pero sigue intentando el audio
+      setTimeout(() => speak(ex.speakText), 350);
     }
+  }
+
+  else if (ex.type === "fill") {
+    box.innerHTML = `
+      <h1>${esc(ex.title)}</h1>
+      ${ex.esText ? `<div class="fill-es">${esc(ex.esText)}</div>` : ""}
+      <div class="fill-sentence">${esc(ex.sentence).replace("___", '<span class="gap" id="gap">___</span>')}</div>
+      <div class="options">
+        ${ex.options.map((o, i) => `
+          <button class="option" data-opt="${esc(o)}"><span class="opt-num">${i + 1}</span>${esc(o)}</button>`).join("")}
+      </div>`;
+    let selected = null;
+    const gap = box.querySelector("#gap");
+    box.querySelectorAll(".option").forEach(btn => btn.addEventListener("click", () => {
+      box.querySelectorAll(".option").forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      selected = btn.dataset.opt;
+      gap.textContent = selected;
+      gap.classList.add("filled");
+      setCheckEnabled(true);
+    }));
+    getAnswer = () => selected;
   }
 
   else if (ex.type === "wordbank") {
@@ -880,6 +1094,7 @@ function renderExercise(ex) {
         sel.classList.add("matched"); btn.classList.add("matched");
         matched++;
         beep([880], 0.08);
+        noteWord(eu, true);
         if (matched === ex.pairs.length) {
           // Emparejar completo cuenta como acierto automático.
           session.correct++; session.combo++;
@@ -920,13 +1135,18 @@ function checkAnswer(ex, raw) {
     ok = (ex.accepts || [ex.answer]).some(a => normalize(a) === given);
   }
 
+  if (ex.wordKey) noteWord(ex.wordKey, ok);
+
   if (ok) {
     session.correct++; session.combo++;
     session.bestCombo = Math.max(session.bestCombo, session.combo);
     sfxOk();
+    try { if (navigator.vibrate) navigator.vibrate(25); } catch (e) {}
+    if (session.combo === 5 || session.combo === 10) toast(`🔥 ¡Combo de ${session.combo}!`);
   } else {
     session.wrong++; session.combo = 0;
     sfxKo();
+    try { if (navigator.vibrate) navigator.vibrate([50, 40, 80]); } catch (e) {}
     if (session.mode === "lesson") {
       S.hearts = Math.max(0, S.hearts - 1);
       if (S.hearts > 0) S.heartsStamp = S.heartsStamp || Date.now();
@@ -999,13 +1219,16 @@ function renderResults() {
         <h1>Azterketa A1 gainditua!</h1>
         <p class="sub">¡Has aprobado el examen del nivel A1! Zorionak!<br>El nivel A2 llegará próximamente.</p>
         <div class="result-cards">
-          <div class="result-card xp"><div class="rc-title">XP</div><div class="rc-value">+${r.xp}</div></div>
+          <div class="result-card xp"><div class="rc-title">XP</div><div class="rc-value" id="xp-count">+0</div></div>
           <div class="result-card acc"><div class="rc-title">Precisión</div><div class="rc-value">${r.acc}%</div></div>
           <div class="result-card combo"><div class="rc-title">Gemas</div><div class="rc-value">+${r.gems} 💎</div></div>
         </div>
+        ${r.tip ? `<div class="tip-card">💡 <b>¿Sabías que…?</b> ${esc(r.tip)}</div>` : ""}
         <button class="btn btn-primary btn-full" id="go-home" style="max-width:320px">Continuar</button>
       </div>`;
     document.getElementById("go-home").addEventListener("click", () => { route = { view: "home", tab: "learn" }; render(); });
+    launchConfetti();
+    countUp(document.getElementById("xp-count"), r.xp);
     return;
   }
   if (r.failed) {
@@ -1028,13 +1251,44 @@ function renderResults() {
       <h1>${r.perfect ? "¡Lección perfecta!" : "¡Lección completada!"}</h1>
       <p class="sub">${r.mode === "practice" ? "Práctica terminada — Bikain! (+1 ❤️)" : "Zorionak! (¡Enhorabuena!)"}</p>
       <div class="result-cards">
-        <div class="result-card xp"><div class="rc-title">XP total</div><div class="rc-value">+${r.xp}</div></div>
+        <div class="result-card xp"><div class="rc-title">XP total</div><div class="rc-value" id="xp-count">+0</div></div>
         <div class="result-card acc"><div class="rc-title">Precisión</div><div class="rc-value">${r.acc}%</div></div>
         ${r.gems ? `<div class="result-card combo"><div class="rc-title">Gemas</div><div class="rc-value">+${r.gems} 💎</div></div>` : ""}
       </div>
+      ${r.tip ? `<div class="tip-card">💡 <b>¿Sabías que…?</b> ${esc(r.tip)}</div>` : ""}
       <button class="btn btn-primary btn-full" id="go-home" style="max-width:320px">Continuar</button>
     </div>`;
   document.getElementById("go-home").addEventListener("click", () => { route = { view: "home", tab: "learn" }; render(); });
+  launchConfetti();
+  countUp(document.getElementById("xp-count"), r.xp);
+}
+
+/* ---------------- Celebraciones ---------------- */
+
+function launchConfetti() {
+  if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const colors = ["#58cc02", "#1cb0f6", "#ff9600", "#ff4b4b", "#ce82ff", "#ffc800"];
+  for (let i = 0; i < 60; i++) {
+    const c = document.createElement("div");
+    c.className = "confetti";
+    c.style.left = Math.random() * 100 + "vw";
+    c.style.background = pick(colors);
+    c.style.animationDelay = (Math.random() * 0.9) + "s";
+    c.style.animationDuration = (1.8 + Math.random() * 1.6) + "s";
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 4500);
+  }
+}
+
+function countUp(el, target) {
+  if (!el || !target) { if (el) el.textContent = "+" + (target || 0); return; }
+  let cur = 0;
+  const step = Math.max(1, Math.round(target / 25));
+  const t = setInterval(() => {
+    cur = Math.min(target, cur + step);
+    el.textContent = "+" + cur;
+    if (cur >= target) clearInterval(t);
+  }, 35);
 }
 
 /* ---------------- Vidas: modal y recarga ---------------- */
@@ -1068,6 +1322,26 @@ function tryRefillHearts() {
   toast("¡Vidas recargadas! ❤️❤️❤️❤️❤️");
   render();
 }
+
+/* ---------------- Atajos de teclado (escritorio) ---------------- */
+
+document.addEventListener("keydown", e => {
+  if (route.view !== "lesson" || !session) return;
+  const tag = (e.target.tagName || "").toLowerCase();
+  if (e.key >= "1" && e.key <= "4" && tag !== "textarea" && tag !== "input") {
+    const opts = [...document.querySelectorAll(".option:not([disabled])")];
+    const o = opts[Number(e.key) - 1];
+    if (o) o.click();
+  } else if (e.key === "Enter" && tag !== "textarea") {
+    const cont = document.getElementById("continue");
+    if (cont) {
+      if (document.activeElement !== cont) cont.click(); // si tiene el foco, el navegador ya lo pulsa
+      return;
+    }
+    const chk = document.getElementById("check");
+    if (chk && !chk.disabled && chk.style.display !== "none") chk.click();
+  }
+});
 
 /* ---------------- Arranque ---------------- */
 

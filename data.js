@@ -747,6 +747,132 @@ const EXAM_A1 = {
   gems: 50,
 };
 
+/* ------------------------------------------------------------
+   Ejercicios de gramática por unidad (completar el hueco).
+   Practican exactamente las estructuras del A1: izan, egon,
+   ukan, casos, demostrativos, presente habitual, gustatzen…
+   ------------------------------------------------------------ */
+const DRILLS = {
+  agurrak: [
+    { q: "— Eskerrik asko! — ___", hint: "de nada", options: ["Ez horregatik", "Gero arte", "Egun on", "Bai"], answer: "Ez horregatik" },
+    { q: "Goizean ___ esaten dugu", hint: "saludo de la mañana", options: ["egun on", "gabon", "agur", "gero arte"], answer: "egun on" },
+    { q: "Gauean ___ esaten dugu", hint: "saludo de la noche", options: ["gabon", "egun on", "kaixo", "mesedez"], answer: "gabon" },
+    { q: "___ ez dut ulertzen", hint: "disculpa", options: ["Barkatu", "Agur", "Bai", "Gabon"], answer: "Barkatu" },
+  ],
+  aurkezpenak: [
+    { q: "Ni Ane ___", hint: "izan: yo", options: ["naiz", "zara", "da", "gara"], answer: "naiz" },
+    { q: "Zu Jon ___", hint: "izan: tú", options: ["zara", "naiz", "da", "dira"], answer: "zara" },
+    { q: "Bera irakaslea ___", hint: "izan: él/ella", options: ["da", "naiz", "zara", "gara"], answer: "da" },
+    { q: "Gu ikasleak ___", hint: "izan: nosotros", options: ["gara", "naiz", "da", "zarete"], answer: "gara" },
+    { q: "Haiek euskaldunak ___", hint: "izan: ellos", options: ["dira", "da", "gara", "zara"], answer: "dira" },
+  ],
+  zenbakiak: [
+    { q: "Hogei urte ___", hint: "tener: yo", options: ["ditut", "dut", "dira", "da"], answer: "ditut" },
+    { q: "Zenbat urte ___?", hint: "tener: tú", options: ["dituzu", "ditut", "duzu", "dira"], answer: "dituzu" },
+    { q: "Bost eta bost ___ dira", hint: "5 + 5", options: ["hamar", "bost", "hogei", "lau"], answer: "hamar" },
+    { q: "30 euskaraz ___ da", hint: "20 + 10", options: ["hogeita hamar", "hogei", "berrogei", "hamar"], answer: "hogeita hamar" },
+  ],
+  familia: [
+    { q: "___ ama Miren da", hint: "posesivo: mi", options: ["Nire", "Zure", "Bere", "Gure"], answer: "Nire" },
+    { q: "___ aita medikua da", hint: "posesivo: tu", options: ["Zure", "Nire", "Haien", "Bere"], answer: "Zure" },
+    { q: "Gu Bilbon bizi ___", hint: "izan: nosotros", options: ["gara", "naiz", "dira", "zara"], answer: "gara" },
+    { q: "Aitona etxean bizi ___", hint: "izan: él", options: ["da", "naiz", "gara", "zarete"], answer: "da" },
+  ],
+  deskribapenak: [
+    { q: "Liburu ___ berria da", hint: "demostrativo: este", options: ["hau", "hori", "hura", "haiek"], answer: "hau" },
+    { q: "Mutil ___ altua da", hint: "demostrativo: ese", options: ["hori", "hau", "hura", "horiek"], answer: "hori" },
+    { q: "Neska ___ gaztea da", hint: "demostrativo: aquella", options: ["hura", "hau", "hori", "hauek"], answer: "hura" },
+    { q: "Etxe ___ polita da", hint: "grande + artículo", options: ["handia", "handi", "handiak", "txiki"], answer: "handia" },
+  ],
+  koloreak: [
+    { q: "Loreak ___ dira", hint: "bonitas (plural)", options: ["politak", "polita", "polit", "politen"], answer: "politak" },
+    { q: "Sagarrak ___ dira", hint: "rojas (plural)", options: ["gorriak", "gorria", "gorri", "gorriren"], answer: "gorriak" },
+    { q: "Katua ___ da", hint: "negro (singular)", options: ["beltza", "beltzak", "beltz", "zuriak"], answer: "beltza" },
+    { q: "Etxeak ___ dira", hint: "blancas (plural)", options: ["zuriak", "zuria", "zuri", "beltza"], answer: "zuriak" },
+  ],
+  etxea: [
+    { q: "Ni sukaldean ___", hint: "egon: yo", options: ["nago", "dago", "zaude", "gaude"], answer: "nago" },
+    { q: "Zu etxean ___", hint: "egon: tú", options: ["zaude", "nago", "dago", "daude"], answer: "zaude" },
+    { q: "Giltza atean ___", hint: "egon: ella (la llave)", options: ["dago", "nago", "gaude", "zaudete"], answer: "dago" },
+    { q: "Liburua ___ dago", hint: "en la mesa (-an)", options: ["mahaian", "mahaia", "mahaira", "mahaitik"], answer: "mahaian" },
+  ],
+  egunerokoa: [
+    { q: "Goizean kafea ___ dut", hint: "tomar (habitual)", options: ["hartzen", "hartu", "hartuko", "hartzea"], answer: "hartzen" },
+    { q: "Egunero euskara ___ dut", hint: "aprender (habitual)", options: ["ikasten", "ikasi", "ikasiko", "ikastea"], answer: "ikasten" },
+    { q: "Zortzietan ___ naiz", hint: "levantarse (habitual)", options: ["jaikitzen", "jaiki", "jaikiko", "jaikitzea"], answer: "jaikitzen" },
+    { q: "Gauean liburua ___ dut", hint: "leer (habitual)", options: ["irakurtzen", "irakurri", "irakurriko", "irakurtzea"], answer: "irakurtzen" },
+  ],
+  ordua: [
+    { q: "Ordu ___ da", hint: "la una", options: ["bata", "bat", "batak", "batean"], answer: "bata" },
+    { q: "___ dira", hint: "las tres", options: ["Hirurak", "Hiru", "Hiruan", "Hirutan"], answer: "Hirurak" },
+    { q: "Gaur ___ da", hint: "lunes", options: ["astelehena", "igandea", "larunbata", "atzo"], answer: "astelehena" },
+    { q: "Atzo ___ zen", hint: "domingo", options: ["igandea", "astelehena", "bihar", "gaur"], answer: "igandea" },
+  ],
+  janaria: [
+    { q: "Kafe bat ___ dut", hint: "querer", options: ["nahi", "jaten", "edaten", "hartzen"], answer: "nahi" },
+    { q: "Ogia ___ dut", hint: "comer (habitual)", options: ["jaten", "edaten", "jan", "jateko"], answer: "jaten" },
+    { q: "Ura ___ dut", hint: "beber (habitual)", options: ["edaten", "jaten", "edan", "edateko"], answer: "edaten" },
+    { q: "Zer nahi duzu ___?", hint: "para comer", options: ["jateko", "jaten", "jan", "jatea"], answer: "jateko" },
+  ],
+  erosketak: [
+    { q: "___ balio du?", hint: "cuánto", options: ["Zenbat", "Non", "Nor", "Zer"], answer: "Zenbat" },
+    { q: "___ noa", hint: "al mercado (-ra)", options: ["Merkatura", "Merkatuan", "Merkatutik", "Merkatua"], answer: "Merkatura" },
+    { q: "Alkandora hau oso ___ da", hint: "caro", options: ["garestia", "merkea", "garesti", "merkeak"], answer: "garestia" },
+    { q: "Hamar euro ___ du", hint: "costar", options: ["balio", "nahi", "behar", "hartzen"], answer: "balio" },
+  ],
+  herria: [
+    { q: "___ dago geltokia?", hint: "dónde", options: ["Non", "Nor", "Zer", "Zenbat"], answer: "Non" },
+    { q: "Jatetxea ___ dago", hint: "aquí", options: ["hemen", "hor", "han", "urrun"], answer: "hemen" },
+    { q: "Hondartza ___ dago", hint: "cerca", options: ["gertu", "urrun", "han", "hor"], answer: "gertu" },
+    { q: "Eskuinera eta gero ___", hint: "a la izquierda (-ra)", options: ["ezkerrera", "ezkerra", "ezkerrean", "ezkerretik"], answer: "ezkerrera" },
+  ],
+  garraioa: [
+    { q: "___ noa lanera", hint: "en autobús (-z)", options: ["Autobusez", "Autobusa", "Autobusean", "Autobusera"], answer: "Autobusez" },
+    { q: "Ni etxera ___", hint: "joan: yo", options: ["noa", "zoaz", "doa", "goaz"], answer: "noa" },
+    { q: "Zu eskolara ___", hint: "joan: tú", options: ["zoaz", "noa", "doa", "doaz"], answer: "zoaz" },
+    { q: "Gu hondartzara ___", hint: "joan: nosotros", options: ["goaz", "noa", "zoaz", "doa"], answer: "goaz" },
+  ],
+  eguraldia: [
+    { q: "Euria ari ___", hint: "está lloviendo", options: ["du", "da", "dago", "dira"], answer: "du" },
+    { q: "Hotz handia egiten ___", hint: "hace mucho frío", options: ["du", "da", "dago", "ari"], answer: "du" },
+    { q: "Gaur eguzkia ___", hint: "hay sol (egon)", options: ["dago", "du", "da", "ari"], answer: "dago" },
+    { q: "Neguan ___ egiten du", hint: "frío", options: ["hotza", "beroa", "euria", "eguzkia"], answer: "hotza" },
+  ],
+  aisialdia: [
+    { q: "Musika gustatzen ___", hint: "me gusta (una cosa)", options: ["zait", "zaizkit", "dut", "naiz"], answer: "zait" },
+    { q: "Liburuak gustatzen ___", hint: "me gustan (varias)", options: ["zaizkit", "zait", "ditut", "gara"], answer: "zaizkit" },
+    { q: "Futbolean ___ dut", hint: "jugar (a un deporte)", options: ["jokatzen", "jolasten", "jokatu", "jokatuko"], answer: "jokatzen" },
+    { q: "Zinemara joaten ___ larunbatetan", hint: "izan: nosotros", options: ["gara", "naiz", "dira", "zara"], answer: "gara" },
+  ],
+  lana: [
+    { q: "___ egiten duzu lan?", hint: "en qué", options: ["Zertan", "Non", "Nor", "Zenbat"], answer: "Zertan" },
+    { q: "Medikua ___", hint: "izan: yo", options: ["naiz", "dut", "nago", "da"], answer: "naiz" },
+    { q: "Bulegoan lan egiten ___", hint: "auxiliar: yo", options: ["dut", "naiz", "nago", "da"], answer: "dut" },
+    { q: "Unibertsitatean ___ dut", hint: "estudiar (habitual)", options: ["ikasten", "ikasi", "ikasiko", "ikastea"], answer: "ikasten" },
+  ],
+};
+
+/* ------------------------------------------------------------
+   Curiosidades culturales para las pantallas de resultados.
+   ------------------------------------------------------------ */
+const TIPS = [
+  "El euskera es una lengua aislada: no está emparentada con ninguna otra lengua viva del mundo.",
+  "El euskera batua (unificado) se creó en 1968 sobre la base de los dialectos centrales.",
+  "En euskera se cuenta en base 20: cuarenta es «berrogei» (dos veintes), como el «quatre-vingts» francés.",
+  "Muchos apellidos vascos describen el caserío: Etxeberria significa «la casa nueva».",
+  "Palabras castellanas como «izquierda» (de ezkerra) o «chatarra» (de txatarra) vienen del euskera.",
+  "Los bertsolaris improvisan versos cantados en euskera en campeonatos que llenan estadios.",
+  "El pintxo, la tapa vasca, se llama así por el palillo que lo sujeta al pan.",
+  "En euskera no hay género gramatical: «polita» vale para «bonito» y «bonita».",
+  "La ikurriña, la bandera vasca, fue diseñada por los hermanos Arana en 1894.",
+  "El lauburu («cuatro cabezas») es el símbolo tradicional vasco.",
+  "El caserío (baserria) es la unidad tradicional de la vida rural vasca.",
+  "«Agur» hoy es despedida, pero antiguamente era también un saludo solemne.",
+  "El euskera tiene más de 700.000 hablantes entre Euskadi, Navarra e Iparralde.",
+  "Los euskaltegis son las escuelas donde las personas adultas aprenden euskera: ¡hay más de 100!",
+];
+
 // Nº de lecciones por unidad (la última es el repaso/examen de la unidad)
 const LESSONS_PER_UNIT = 4;
 const EXERCISES_PER_LESSON = 10;
+const DAILY_GOAL_XP = 30;
