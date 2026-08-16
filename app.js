@@ -31,6 +31,7 @@ const defaultState = () => ({
   theme: "auto",          // "auto" | "light" | "dark"
   streakFreezes: 0,       // protectores de racha equipados (máx. 2)
   stories: {},            // id de historia -> true (completada)
+  blitzBest: 0,           // récord del reto Erronka (60 s)
 });
 
 let S = loadState();
@@ -195,8 +196,12 @@ function goalToday() {
   return S.goalXp;
 }
 
+let pendingLevelUp = null; // se celebra en la siguiente pantalla de resultados
+
 function addXp(n) {
+  const lvBefore = level();
   S.xp += n;
+  if (level() > lvBefore) pendingLevelUp = level();
   goalToday();
   const before = S.goalXp;
   S.goalXp += n;
@@ -220,6 +225,7 @@ const BADGES = [
   { id: "xp500", icon: "⚡", t: "Indartsu", d: "Consigue 500 XP", test: () => S.xp >= 500 },
   { id: "perfect5", icon: "💎", t: "Perfektua", d: "5 lecciones perfectas", test: () => S.perfects >= 5 },
   { id: "words50", icon: "🗣️", t: "Hiztuna", d: "Practica 50 palabras distintas", test: () => Object.keys(S.wordStats).length >= 50 },
+  { id: "blitz20", icon: "⚡", t: "Ziztu bizian", d: "20+ puntos en un reto Erronka", test: () => (S.blitzBest || 0) >= 20 },
   { id: "gems300", icon: "💰", t: "Aberatsa", d: "Acumula 300 gemas", test: () => S.gems >= 300 },
 ];
 
@@ -353,23 +359,32 @@ function speak(text) {
 
 // Los navegadores móviles bloquean el audio hasta el primer gesto del
 // usuario: desbloqueamos el AudioContext y "calentamos" la síntesis.
+// "Estrenar" un <audio> dentro de un gesto: iOS solo deja reproducir
+// elementos que ya se hayan tocado con permiso del usuario.
+const SFX_PRIMED = {};
+function primeSfx(name) {
+  try {
+    const a = getSfx(name);
+    SFX_PRIMED[name] = true;
+    a.muted = true;
+    const p = a.play();
+    if (p && p.then) p.then(() => { a.pause(); a.currentTime = 0; a.muted = false; })
+                      .catch(() => { a.muted = false; });
+    else { a.pause(); a.currentTime = 0; a.muted = false; }
+  } catch (e) {}
+}
+
 document.addEventListener("pointerdown", function unlockAudio() {
   try {
     audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
     audioCtx.resume();
   } catch (e) {}
-  // "Estrenar" los <audio> de los efectos dentro del gesto: iOS solo
-  // permite reproducir elementos que ya se hayan tocado con permiso.
-  try {
-    for (const name of Object.keys(SFX_SPECS)) {
-      const a = getSfx(name);
-      a.muted = true;
-      const p = a.play();
-      if (p && p.then) p.then(() => { a.pause(); a.currentTime = 0; a.muted = false; })
-                        .catch(() => { a.muted = false; });
-      else { a.pause(); a.currentTime = 0; a.muted = false; }
-    }
-  } catch (e) {}
+  // Solo el tap se sintetiza dentro del primer gesto (es ligero y es el
+  // primero que suena); el resto se genera en diferido para no congelar
+  // el primer toque en móviles modestos.
+  primeSfx("tap");
+  Object.keys(SFX_SPECS).filter(n => n !== "tap")
+    .forEach((n, i) => setTimeout(() => { try { getSfx(n); } catch (e) {} }, 150 + i * 90));
   try {
     if ("speechSynthesis" in window) {
       speechSynthesis.getVoices();
@@ -379,6 +394,19 @@ document.addEventListener("pointerdown", function unlockAudio() {
     }
   } catch (e) {}
 }, { once: true });
+
+// En los siguientes gestos se estrenan (en tandas de 2) los efectos ya
+// sintetizados; cuando están todos, el listener se retira solo.
+document.addEventListener("pointerdown", function progressivePrime() {
+  let primed = 0;
+  for (const n of Object.keys(SFX_SPECS)) {
+    if (primed >= 2) break;
+    if (SFX[n] && !SFX_PRIMED[n]) { primeSfx(n); primed++; }
+  }
+  if (Object.keys(SFX_SPECS).every(n => SFX_PRIMED[n])) {
+    document.removeEventListener("pointerdown", progressivePrime);
+  }
+});
 
 /* Efectos de sonido.
    IMPORTANTE (iPhone): el interruptor de silencio mutea la Web Audio
@@ -408,9 +436,12 @@ function beep(freqs, dur = 0.11, type = "triangle", gain = 0.16) {
   } catch (e) {}
 }
 
-/* Cada efecto se describe como segmentos de síntesis: tono (con glissando
-   f→f2), armónico de campana, capa de ruido para el "toque" físico…
-   El resultado compite con un pack de sonidos, pero pesa cero bytes. */
+/* Cada efecto se describe como segmentos de síntesis: tono (glissando
+   f→f2), armónico de campana, ruido filtrado para el golpe físico y
+   paneo estéreo. El "bus de mezcla" aplica masterización de videojuego:
+   capa desafinada para anchura estéreo, reverb por peines de
+   retroalimentación decorrelados por canal, saturación suave tipo
+   limitador y normalización a ~-1 dBFS. Pesa cero bytes en assets. */
 const SFX_SPECS = {
   // Toque al elegir una opción o ficha: golpecito con blip descendente.
   tap: [
@@ -418,69 +449,94 @@ const SFX_SPECS = {
     { f: 950, f2: 700, dur: 0.055, gain: 0.22 },
   ],
   // Ficha colocada: burbuja ascendente.
-  chip: [{ f: 480, f2: 900, dur: 0.08, gain: 0.28, harm: 0.2 }],
-  // Acierto: campanitas do–mi–sol con armónicos + destello agudo.
+  chip: [{ f: 480, f2: 900, dur: 0.08, gain: 0.28, harm: 0.2, pan: 0.15 }],
+  // Acierto: campanitas do–mi–sol que viajan de izquierda a derecha.
   ok: [
-    { f: 523.25, start: 0, dur: 0.1, gain: 0.34, harm: 0.35 },
-    { f: 659.25, start: 0.07, dur: 0.1, gain: 0.34, harm: 0.35 },
-    { f: 783.99, start: 0.14, dur: 0.13, gain: 0.34, harm: 0.35 },
-    { f: 1567.98, start: 0.2, dur: 0.16, gain: 0.1, harm: 0.2 },
+    { f: 523.25, start: 0, dur: 0.1, gain: 0.34, harm: 0.35, pan: -0.5 },
+    { f: 659.25, start: 0.07, dur: 0.1, gain: 0.34, harm: 0.35, pan: 0 },
+    { f: 783.99, start: 0.14, dur: 0.13, gain: 0.34, harm: 0.35, pan: 0.5 },
+    { f: 1567.98, start: 0.2, dur: 0.16, gain: 0.1, harm: 0.2, pan: 0.2 },
   ],
   // Fallo: "womp" descendente con capa subgrave, suave.
   ko: [
     { f: 220, f2: 145, dur: 0.24, type: "triangle", gain: 0.26 },
     { f: 110, f2: 72, dur: 0.24, gain: 0.16 },
   ],
+  // Fallo rápido del modo Erronka: zumbido corto sin drama.
+  buzz: [{ f: 190, f2: 150, dur: 0.1, type: "triangle", gain: 0.2 }],
   // Pareja emparejada: ding brillante doble.
   pair: [
-    { f: 1174.66, dur: 0.08, gain: 0.26, harm: 0.4 },
-    { f: 1567.98, start: 0.05, dur: 0.11, gain: 0.18, harm: 0.3 },
+    { f: 1174.66, dur: 0.08, gain: 0.26, harm: 0.4, pan: -0.2 },
+    { f: 1567.98, start: 0.05, dur: 0.11, gain: 0.18, harm: 0.3, pan: 0.2 },
   ],
-  // Hito de combo: glissando pentatónico ascendente.
+  // Hito de combo: glissando pentatónico que cruza el estéreo.
   combo: [
-    { f: 523.25, start: 0, dur: 0.07, gain: 0.28, harm: 0.25 },
-    { f: 587.33, start: 0.05, dur: 0.07, gain: 0.28, harm: 0.25 },
-    { f: 659.25, start: 0.1, dur: 0.07, gain: 0.28, harm: 0.25 },
-    { f: 783.99, start: 0.15, dur: 0.07, gain: 0.3, harm: 0.25 },
-    { f: 1046.5, start: 0.2, dur: 0.16, gain: 0.32, harm: 0.35 },
+    { f: 523.25, start: 0, dur: 0.07, gain: 0.28, harm: 0.25, pan: -0.6 },
+    { f: 587.33, start: 0.05, dur: 0.07, gain: 0.28, harm: 0.25, pan: -0.3 },
+    { f: 659.25, start: 0.1, dur: 0.07, gain: 0.28, harm: 0.25, pan: 0 },
+    { f: 783.99, start: 0.15, dur: 0.07, gain: 0.3, harm: 0.25, pan: 0.3 },
+    { f: 1046.5, start: 0.2, dur: 0.16, gain: 0.32, harm: 0.35, pan: 0.6 },
   ],
-  // Fin de lección: acorde-fanfarria en dos golpes + campana final.
+  // Fin de lección: fanfarria en acordes anchos + campana final.
   win: [
-    { f: 523.25, start: 0, dur: 0.12, gain: 0.2, harm: 0.3 },
-    { f: 659.25, start: 0, dur: 0.12, gain: 0.2, harm: 0.3 },
-    { f: 783.99, start: 0, dur: 0.12, gain: 0.2, harm: 0.3 },
-    { f: 783.99, start: 0.16, dur: 0.1, gain: 0.2, harm: 0.3 },
-    { f: 1046.5, start: 0.16, dur: 0.1, gain: 0.2, harm: 0.3 },
+    { f: 523.25, start: 0, dur: 0.12, gain: 0.2, harm: 0.3, pan: -0.4 },
+    { f: 659.25, start: 0, dur: 0.12, gain: 0.2, harm: 0.3, pan: 0 },
+    { f: 783.99, start: 0, dur: 0.12, gain: 0.2, harm: 0.3, pan: 0.4 },
+    { f: 783.99, start: 0.16, dur: 0.1, gain: 0.2, harm: 0.3, pan: -0.25 },
+    { f: 1046.5, start: 0.16, dur: 0.1, gain: 0.2, harm: 0.3, pan: 0.25 },
     { f: 1318.51, start: 0.3, dur: 0.28, gain: 0.26, harm: 0.4 },
+  ],
+  // Subida de nivel: campana grave + acorde que se abre + destello.
+  level: [
+    { f: 261.63, start: 0, dur: 0.3, gain: 0.24, harm: 0.4 },
+    { f: 523.25, start: 0.12, dur: 0.18, gain: 0.2, harm: 0.35, pan: -0.5 },
+    { f: 659.25, start: 0.18, dur: 0.18, gain: 0.2, harm: 0.35, pan: 0 },
+    { f: 783.99, start: 0.24, dur: 0.2, gain: 0.22, harm: 0.35, pan: 0.5 },
+    { f: 2093, start: 0.34, dur: 0.22, gain: 0.09, harm: 0.2 },
   ],
 };
 
-// Sintetiza los segmentos como un WAV PCM de 16 bits y devuelve una URL blob.
+// Sintetiza los segmentos como un WAV PCM estéreo de 16 bits (44,1 kHz)
+// con la cadena de masterización, y devuelve una URL blob.
 function synthWavUrl(segments) {
-  const sr = 22050;
-  const end = Math.max(...segments.map(s => (s.start || 0) + (s.dur || 0.1))) + 0.15;
+  // 28 kHz: agudos nítidos hasta 14 kHz con un tercio del coste de 44,1 kHz
+  // (la síntesis corre en el hilo principal de móviles modestos).
+  const sr = 28000;
+  const wantsReverb = segments.some(s => s.harm); // los blips secos no llevan reverb
+  const end = Math.max(...segments.map(s => (s.start || 0) + (s.dur || 0.1))) + (wantsReverb ? 0.35 : 0.12);
   const total = Math.ceil(sr * end);
-  const data = new Float32Array(total);
+  const L = new Float32Array(total), R = new Float32Array(total);
+
   for (const s of segments) {
     const start = Math.floor((s.start || 0) * sr);
     const dur = s.dur || 0.1;
     const len = Math.floor(dur * 1.7 * sr);
     const gain = s.gain === undefined ? 0.3 : s.gain;
+    const pan = s.pan || 0; // -1 izquierda … 1 derecha (ley de paneo cosenoidal)
+    const gL = Math.cos((pan + 1) * Math.PI / 4);
+    const gR = Math.sin((pan + 1) * Math.PI / 4);
+
     if (s.noise) {
+      let lp = 0; // paso-bajo de un polo: golpe físico sin aspereza
       for (let n = 0; n < len && start + n < total; n++) {
         const t = n / sr;
-        data[start + n] += (Math.random() * 2 - 1) * Math.exp(-t * 120) * gain;
+        lp += 0.22 * ((Math.random() * 2 - 1) - lp);
+        const v = lp * Math.exp(-t * 120) * gain * 3;
+        L[start + n] += v * gL;
+        R[start + n] += v * gR;
       }
       continue;
     }
+
     const f1 = s.f, f2 = s.f2 === undefined ? s.f : s.f2;
-    let ph = 0, ph2 = 0;
+    let ph = 0, ph2 = 0, phD = 0;
     for (let n = 0; n < len && start + n < total; n++) {
       const t = n / sr;
       const f = f1 + (f2 - f1) * Math.min(1, t / dur);
       ph += (2 * Math.PI * f) / sr;
       ph2 += (2 * Math.PI * f * 2) / sr;
-      const env = Math.min(1, t / 0.008) * Math.exp(-t * (4.5 / dur));
+      phD += (2 * Math.PI * f * 1.006) / sr; // capa desafinada: anchura estéreo
+      const env = Math.min(1, t / 0.006) * Math.exp(-t * (4.5 / dur));
       let v;
       if (s.type === "triangle") {
         const p = ph / (2 * Math.PI), frac = p - Math.floor(p);
@@ -489,23 +545,54 @@ function synthWavUrl(segments) {
         v = Math.sin(ph);
       }
       if (s.harm) v += Math.sin(ph2) * s.harm;
-      data[start + n] += v * env * gain;
+      const dry = v * env * gain;
+      const det = Math.sin(phD) * env * gain * 0.32;
+      L[start + n] += (dry + det * 0.4) * gL;
+      R[start + n] += (dry * 0.92 + det) * gR;
     }
   }
-  // normalización suave contra el clipping
+
+  // Reverb: peines de retroalimentación, decorrelados entre canales.
+  // Solo para los sonidos musicales (con armónicos); los blips van secos.
+  if (wantsReverb) {
+    const combs = [
+      { d: Math.floor(0.029 * sr), g: 0.30 },
+      { d: Math.floor(0.047 * sr), g: 0.24 },
+      { d: Math.floor(0.073 * sr), g: 0.18 },
+    ];
+    const wet = 0.22;
+    [L, R].forEach((ch, ci) => {
+      const dry = Float32Array.from(ch);
+      for (const { d, g } of combs) {
+        const off = ci === 1 ? Math.floor(d * 1.11) : d;
+        for (let i = off; i < total; i++) {
+          ch[i] += (dry[i - off] + ch[i - off] * 0.3) * g * wet;
+        }
+      }
+    });
+  }
+
+  // Master: saturación suave (cohesión + límite). La normalización SOLO
+  // atenúa: subir todo a -1 dB igualaría el volumen de los 9 efectos y
+  // rompería la jerarquía diseñada en los gains (un tap no es una fanfarria).
   let peak = 0;
-  for (let i = 0; i < total; i++) peak = Math.max(peak, Math.abs(data[i]));
-  const norm = peak > 0.95 ? 0.95 / peak : 1;
-  const buf = new ArrayBuffer(44 + total * 2);
+  for (let i = 0; i < total; i++) {
+    L[i] = Math.tanh(L[i] * 1.35);
+    R[i] = Math.tanh(R[i] * 1.35);
+    peak = Math.max(peak, Math.abs(L[i]), Math.abs(R[i]));
+  }
+  const norm = peak > 0.89 ? 0.89 / peak : 1;
+
+  const buf = new ArrayBuffer(44 + total * 4);
   const v = new DataView(buf);
   const wstr = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
-  wstr(0, "RIFF"); v.setUint32(4, 36 + total * 2, true); wstr(8, "WAVE");
-  wstr(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
-  v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
-  wstr(36, "data"); v.setUint32(40, total * 2, true);
+  wstr(0, "RIFF"); v.setUint32(4, 36 + total * 4, true); wstr(8, "WAVE");
+  wstr(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 2, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * 4, true); v.setUint16(32, 4, true); v.setUint16(34, 16, true);
+  wstr(36, "data"); v.setUint32(40, total * 4, true);
   for (let i = 0; i < total; i++) {
-    const x = Math.max(-1, Math.min(1, data[i] * norm));
-    v.setInt16(44 + i * 2, x * 32767, true);
+    v.setInt16(44 + i * 4, Math.max(-1, Math.min(1, L[i] * norm)) * 32767, true);
+    v.setInt16(46 + i * 4, Math.max(-1, Math.min(1, R[i] * norm)) * 32767, true);
   }
   return URL.createObjectURL(new Blob([buf], { type: "audio/wav" }));
 }
@@ -875,6 +962,115 @@ function renderStoryRead() {
   document.getElementById("story-quiz").addEventListener("click", () => startStoryQuiz(story));
 }
 
+/* ---------------- ⚡ Erronka: reto contrarreloj de 60 s ----------------
+   Respuesta al toque, sin botón de comprobar: aprendizaje acelerado.
+   Cada respuesta alimenta también el repaso espaciado. */
+
+const BLITZ_MS = 60000;
+
+function startBlitz() {
+  if (learnedWords().length < 8) { toast("Completa un par de lecciones para desbloquear el reto ⚡"); return; }
+  session = {
+    mode: "blitz",
+    score: 0, combo: 0, answered: 0,
+    endAt: Date.now() + (window.BLITZ_MS_OVERRIDE || BLITZ_MS),
+    timer: null,
+    locked: false,
+  };
+  route = { view: "blitz" };
+  render();
+}
+
+function renderBlitz() {
+  const s = session;
+  app.innerHTML = `
+    <div class="lesson-top">
+      <button class="quit-btn" id="quit" aria-label="Salir">✕</button>
+      <div class="progress-track"><div class="progress-fill blitz-fill" id="blitz-time" style="width:100%"></div></div>
+      <div class="blitz-score" id="blitz-score">⚡ 0</div>
+    </div>
+    <div class="exercise" id="exercise"></div>`;
+  document.getElementById("quit").addEventListener("click", () => {
+    clearInterval(s.timer);
+    clearTimeout(s.qTimer);
+    session = null;
+    saveState(); // las respuestas ya dadas alimentaron el repaso espaciado
+    route = { view: "home", tab: "practice" };
+    render();
+  });
+  s.timer = setInterval(() => {
+    if (!session || session.mode !== "blitz") { clearInterval(s.timer); return; }
+    const left = Math.max(0, s.endAt - Date.now());
+    const bar = document.getElementById("blitz-time");
+    if (bar) bar.style.width = (left / (window.BLITZ_MS_OVERRIDE || BLITZ_MS)) * 100 + "%";
+    if (left <= 0) endBlitz();
+  }, 100);
+  nextBlitzQuestion();
+}
+
+function nextBlitzQuestion() {
+  const s = session;
+  if (!s || s.mode !== "blitz") return;
+  const pool = learnedWords();
+  const word = pick(pool);
+  const ex = exChoice(word, pool, Math.random() < 0.5 ? "eu-es" : "es-eu");
+  s.locked = false;
+  const box = document.getElementById("exercise");
+  if (!box) return;
+  box.innerHTML = `
+    <h1 class="blitz-q">${esc(ex.title)}</h1>
+    <div class="prompt-line"><span class="prompt-word">${esc(ex.promptText)}</span></div>
+    <div class="options">
+      ${ex.options.map((o, i) => `
+        <button class="option" data-opt="${esc(o)}"><span class="opt-num">${i + 1}</span>${esc(o)}</button>`).join("")}
+    </div>`;
+  box.querySelectorAll(".option").forEach(btn => btn.addEventListener("click", () => {
+    if (s.locked) return;
+    s.locked = true;
+    const ok = (ex.accepts || [ex.answer]).some(a => normalize(a) === normalize(btn.dataset.opt));
+    s.answered++;
+    noteWord(ex.wordKey, ok); // el reto también alimenta el repaso espaciado
+    box.querySelectorAll(".option").forEach(b => { b.disabled = true; });
+    if (ok) {
+      s.combo++;
+      s.score += 1 + Math.floor(s.combo / 5); // el combo acelera la puntuación
+      btn.classList.add("correct");
+      playSfx(s.combo % 5 === 0 ? "combo" : "pair");
+      if (s.combo >= 3) floatText(btn, `🔥 x${s.combo}`, "#ff9600");
+    } else {
+      s.combo = 0;
+      btn.classList.add("wrong");
+      box.querySelectorAll(".option").forEach(b => {
+        if ((ex.accepts || [ex.answer]).some(a => normalize(a) === normalize(b.dataset.opt))) b.classList.add("correct");
+      });
+      playSfx("buzz");
+    }
+    const sc = document.getElementById("blitz-score");
+    if (sc) sc.textContent = `⚡ ${s.score}`;
+    // ligado a ESTA partida: un timeout huérfano no debe disparar en otra
+    s.qTimer = setTimeout(() => { if (session === s) nextBlitzQuestion(); }, ok ? 220 : 650);
+  }));
+}
+
+function endBlitz() {
+  const s = session;
+  if (!s || s.mode !== "blitz") return;
+  clearInterval(s.timer);
+  clearTimeout(s.qTimer);
+  const record = s.score > (S.blitzBest || 0);
+  if (record) S.blitzBest = s.score;
+  const xp = Math.min(40, s.score);
+  if (xp > 0) { addXp(xp); bumpStreak(); }
+  checkBadges();
+  saveState();
+  // siempre "win": si además hay subida de nivel, el overlay reproducirá
+  // "level" y no deben pisarse (comparten elemento de audio)
+  playSfx("win");
+  route = { view: "results", blitz: true, score: s.score, record, xp, answered: s.answered };
+  session = null;
+  render();
+}
+
 function startPractice() {
   if (!learnedWords().length) { toast("Completa primero una lección 🙂"); return; }
   session = {
@@ -994,11 +1190,13 @@ function failExam() {
 const app = document.getElementById("app");
 
 function render() {
+  clearLevelUp(); // al cambiar de vista, la celebración pendiente no debe tapar nada
   refreshHearts();
   refreshStreak();
   if (route.view === "lesson") renderLesson();
   else if (route.view === "results") renderResults();
   else if (route.view === "story") renderStoryRead();
+  else if (route.view === "blitz") renderBlitz();
   else renderHome();
   window.scrollTo(0, 0);
 }
@@ -1074,6 +1272,9 @@ function renderHome() {
 
   const frz = app.querySelector("#buy-freeze");
   if (frz) frz.addEventListener("click", buyFreeze);
+
+  const bz = app.querySelector("#blitz-start");
+  if (bz) bz.addEventListener("click", startBlitz);
 
   app.querySelectorAll("[data-story]").forEach(b =>
     b.addEventListener("click", () => openStory(b.dataset.story)));
@@ -1367,6 +1568,15 @@ function practiceHTML() {
 
     ${S.hearts < MAX_HEARTS ? `
       <button class="btn btn-ghost btn-full settings-btn" id="refill-hearts">💎 ${HEART_REFILL_COST} — Recargar vidas</button>` : ""}
+
+    <section class="due-card blitz-banner">
+      <span class="due-ico">⚡</span>
+      <div style="flex:1">
+        <div class="due-title">Erronka! Reto de 60 segundos</div>
+        <div class="due-sub">Respuestas al toque, combos ×2 · Récord: <b>${S.blitzBest || 0}</b></div>
+      </div>
+      <button class="btn btn-blue" id="blitz-start">Jugar</button>
+    </section>
 
     <section class="freeze-card">
       <span class="due-ico">🧊</span>
@@ -1846,6 +2056,27 @@ function nextExercise() {
 
 function renderResults() {
   const r = route;
+  if (r.blitz) {
+    app.innerHTML = `
+      <div class="results">
+        <div class="big-emoji">${r.record ? "🏅" : "⚡"}</div>
+        <h1 class="${r.record ? "shine-text" : ""}">${r.record ? "¡Nuevo récord!" : "¡Tiempo!"}</h1>
+        <p class="sub">${r.answered} respuestas en 60 segundos${r.record ? " — Errekorra! 🎉" : ""}</p>
+        <div class="result-cards">
+          <div class="result-card xp"><div class="rc-title">Puntos</div><div class="rc-value" id="xp-count">+0</div></div>
+          <div class="result-card combo"><div class="rc-title">Récord</div><div class="rc-value">${S.blitzBest}</div></div>
+          <div class="result-card acc"><div class="rc-title">XP</div><div class="rc-value">+${r.xp}</div></div>
+        </div>
+        <button class="btn btn-blue btn-full" id="blitz-again" style="max-width:320px">⚡ Otra vez</button>
+        <button class="btn btn-primary btn-full" id="go-home" style="max-width:320px">Continuar</button>
+      </div>`;
+    document.getElementById("go-home").addEventListener("click", () => { route = { view: "home", tab: "practice" }; render(); });
+    document.getElementById("blitz-again").addEventListener("click", startBlitz);
+    if (r.record) launchConfetti();
+    countUp(document.getElementById("xp-count"), r.score);
+    celebrateLevelUpIfAny();
+    return;
+  }
   if (r.examFailed) {
     app.innerHTML = `
       <div class="results">
@@ -1863,7 +2094,7 @@ function renderResults() {
     app.innerHTML = `
       <div class="results">
         <div class="big-emoji">🎓</div>
-        <h1>Azterketa A1 gainditua!</h1>
+        <h1 class="shine-text">Azterketa A1 gainditua!</h1>
         <p class="sub">¡Has aprobado el examen del nivel A1! Zorionak!<br>El nivel A2 llegará próximamente.</p>
         <div class="result-cards">
           <div class="result-card xp"><div class="rc-title">Nota</div><div class="rc-value">${r.nota}/10</div></div>
@@ -1880,6 +2111,7 @@ function renderResults() {
     launchConfetti();
     setTimeout(() => burst(document.querySelector(".big-emoji"), { emoji: ["🎓", "⭐", "✨"], n: 20 }), 300);
     countUp(document.getElementById("xp-count"), r.xp);
+    celebrateLevelUpIfAny();
     return;
   }
   if (r.failed) {
@@ -1899,7 +2131,7 @@ function renderResults() {
   app.innerHTML = `
     <div class="results">
       <div class="big-emoji">${r.perfect ? "🏆" : "🎉"}</div>
-      <h1>${r.perfect ? "¡Lección perfecta!" : "¡Lección completada!"}</h1>
+      <h1 class="${r.perfect ? "shine-text" : ""}">${r.perfect ? "¡Lección perfecta!" : "¡Lección completada!"}</h1>
       <p class="sub">${r.mode === "practice" ? "Práctica terminada — Bikain! (+1 ❤️)" : r.mode === "story" ? "Istorioa osatuta! (¡Historia completada!)" : r.mode === "redo" ? "Fallos repasados — así se aprende de verdad 💪" : "Zorionak! (¡Enhorabuena!)"}</p>
       <div class="result-cards">
         <div class="result-card xp"><div class="rc-title">XP total</div><div class="rc-value" id="xp-count">+0</div></div>
@@ -1915,6 +2147,7 @@ function renderResults() {
   if (rd) rd.addEventListener("click", () => startRedo(r.failedExs));
   launchConfetti();
   countUp(document.getElementById("xp-count"), r.xp);
+  celebrateLevelUpIfAny();
 }
 
 /* ---------------- Celebraciones ---------------- */
@@ -1968,6 +2201,43 @@ function floatText(el, text, color) {
 }
 
 const PRAISE = ["Bikain!", "Oso ondo!", "Primeran!", "Ederki!", "Aupa!"];
+
+// Overlay de subida de nivel: el momento AAA de la sesión.
+// Se cancela si el usuario navega antes (no debe tapar otra vista).
+let levelUpTimer = null;
+let levelUpEl = null;
+
+function clearLevelUp() {
+  clearTimeout(levelUpTimer);
+  levelUpTimer = null;
+  if (levelUpEl) { levelUpEl.remove(); levelUpEl = null; }
+}
+
+function showLevelUp(lv) {
+  playSfx("level");
+  const wrap = document.createElement("div");
+  levelUpEl = wrap;
+  wrap.className = "levelup-overlay";
+  wrap.innerHTML = `
+    <div class="levelup-card">
+      <div class="levelup-ring"></div>
+      <div class="levelup-star">⭐</div>
+      <h2>¡Nivel ${lv}!</h2>
+      <p>Maila berria! Sigue así 🦉</p>
+    </div>`;
+  document.body.appendChild(wrap);
+  setTimeout(() => burst(wrap.querySelector(".levelup-star"), { emoji: ["⭐", "✨", "💫"], n: 22 }), 250);
+  const close = () => { wrap.remove(); if (levelUpEl === wrap) levelUpEl = null; };
+  wrap.addEventListener("click", close);
+  setTimeout(close, 3000);
+}
+
+function celebrateLevelUpIfAny() {
+  if (!pendingLevelUp) return;
+  const lv = pendingLevelUp;
+  pendingLevelUp = null;
+  levelUpTimer = setTimeout(() => showLevelUp(lv), 700);
+}
 
 function launchConfetti() {
   if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -2030,13 +2300,13 @@ function tryRefillHearts() {
 /* ---------------- Atajos de teclado (escritorio) ---------------- */
 
 document.addEventListener("keydown", e => {
-  if (route.view !== "lesson" || !session) return;
+  if ((route.view !== "lesson" && route.view !== "blitz") || !session) return;
   const tag = (e.target.tagName || "").toLowerCase();
   if (e.key >= "1" && e.key <= "4" && tag !== "textarea" && tag !== "input") {
     const opts = [...document.querySelectorAll(".option:not([disabled])")];
     const o = opts[Number(e.key) - 1];
     if (o) o.click();
-  } else if (e.key === "Enter" && tag !== "textarea") {
+  } else if (e.key === "Enter" && tag !== "textarea" && route.view === "lesson") {
     const cont = document.getElementById("continue");
     if (cont) {
       if (document.activeElement !== cont) cont.click(); // si tiene el foco, el navegador ya lo pulsa

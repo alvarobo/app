@@ -803,7 +803,7 @@ button, .chip, .option, .match-btn, .lesson-btn {
 
 /* ---------- Capa de videojuego: partículas y textos ---------- */
 .particle {
-  position: fixed; left: 0; top: 0; z-index: 90;
+  position: fixed; left: 0; top: 0; z-index: 96; /* sobre el overlay de nivel */
   pointer-events: none;
   border-radius: 2px;
   animation: particleFly var(--dur, .7s) cubic-bezier(.2, .6, .4, 1) forwards;
@@ -813,7 +813,7 @@ button, .chip, .option, .match-btn, .lesson-btn {
   to { transform: translate(calc(var(--x) + var(--dx)), calc(var(--y) + var(--dy))) scale(.35) rotate(var(--rot)); opacity: 0; }
 }
 .float-text {
-  position: fixed; left: 0; top: 0; z-index: 90;
+  position: fixed; left: 0; top: 0; z-index: 96;
   pointer-events: none;
   font-weight: 900; font-size: 21px; color: var(--brand);
   text-shadow: 0 1px 0 rgba(0, 0, 0, .12);
@@ -881,9 +881,84 @@ button, .chip, .option, .match-btn, .lesson-btn {
   .hero-owl.wiggle, .progress-fill::before { animation: none; }
 }
 
+/* ---------- Fondo ambiental sutil ---------- */
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(620px at 88% -8%, rgba(88, 204, 2, .07), transparent 60%),
+    radial-gradient(520px at -8% 28%, rgba(28, 176, 246, .06), transparent 60%),
+    radial-gradient(460px at 70% 110%, rgba(255, 200, 0, .05), transparent 60%);
+}
+
+/* ---------- Subida de nivel ---------- */
+.levelup-overlay {
+  position: fixed; inset: 0; z-index: 95;
+  background: var(--overlay);
+  display: flex; align-items: center; justify-content: center;
+  animation: luFade .3s ease;
+}
+@keyframes luFade { from { opacity: 0; } }
+.levelup-card {
+  position: relative; text-align: center;
+  background: var(--surface); border: 2px solid var(--gold);
+  border-radius: 24px; padding: 42px 52px;
+  animation: luPop .45s cubic-bezier(.2, 1.4, .4, 1);
+  overflow: visible;
+}
+@keyframes luPop { from { transform: scale(.4); opacity: 0; } }
+.levelup-ring {
+  position: absolute; inset: -14px; border-radius: 32px;
+  border: 3px solid var(--gold);
+  opacity: .55;
+  animation: luRing 1.4s ease-out infinite;
+}
+@keyframes luRing {
+  from { transform: scale(.92); opacity: .55; }
+  to { transform: scale(1.12); opacity: 0; }
+}
+.levelup-star { font-size: 64px; animation: luStar 1.2s ease-in-out infinite alternate; }
+@keyframes luStar { from { transform: rotate(-8deg) scale(1); } to { transform: rotate(8deg) scale(1.12); } }
+.levelup-card h2 { font-size: 30px; font-weight: 900; color: var(--gold); margin: 6px 0 4px; }
+.levelup-card p { font-weight: 700; color: var(--text-mut); }
+@media (prefers-reduced-motion: reduce) {
+  .levelup-overlay, .levelup-card, .levelup-star { animation: none; }
+  .levelup-ring { display: none; }
+}
+
+/* ---------- Texto dorado brillante ----------
+   Base ámbar oscura legible sobre blanco; el brillo es una banda
+   estrecha en movimiento. Con movimiento reducido se vuelve al dorado
+   sólido de siempre (el degradado estático dejaría zonas pálidas). */
+.shine-text {
+  background: linear-gradient(100deg, #c28e00 20%, #ffd75e 45%, #ffc800 55%, #c28e00 80%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent !important;
+  animation: shineText 2.2s linear infinite;
+}
+@keyframes shineText { from { background-position: 180% 0; } to { background-position: -80% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .shine-text {
+    animation: none;
+    background: none;
+    -webkit-background-clip: initial; background-clip: initial;
+    color: var(--gold) !important;
+  }
+}
+
+/* ---------- ⚡ Erronka ---------- */
+.blitz-fill { background: var(--gold); transition: width .1s linear; }
+.blitz-score {
+  font-weight: 900; font-size: 17px; color: var(--gold);
+  min-width: 64px; text-align: right; font-variant-numeric: tabular-nums;
+}
+.blitz-q { color: var(--text-mut); font-size: 16px !important; margin-bottom: 8px !important; }
+.blitz-banner { border-color: var(--gold); background: var(--gold-soft); }
+
 /* ---------- Confeti ---------- */
 .confetti {
-  position: fixed; top: -14px; z-index: 80;
+  position: fixed; top: -14px; z-index: 96;
   width: 10px; height: 14px; border-radius: 2px;
   pointer-events: none;
   animation: confettiFall linear forwards;
