@@ -615,12 +615,29 @@ button, .chip, .option, .match-btn, .lesson-btn {
 /* ---------- Vocabulario ---------- */
 .page-title { font-size: 22px; font-weight: 900; margin-bottom: 6px; letter-spacing: -.2px; }
 .page-sub { font-size: 14px; color: var(--text-mut); font-weight: 600; margin-bottom: 18px; }
-.vocab-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--surface-2); }
+.vocab-row { display: flex; align-items: flex-start; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--surface-2); }
 .vocab-row:last-child { border-bottom: none; }
 .vocab-say { width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0; background: var(--blue-soft); font-size: 15px; }
 .vocab-say:active { transform: translateY(1px); }
+.vocab-main { flex: 1; min-width: 0; }
+.vocab-line { display: flex; align-items: center; gap: 10px; }
 .vocab-eu { font-weight: 900; font-size: 15px; min-width: 90px; }
 .vocab-es { flex: 1; font-weight: 600; font-size: 14px; color: var(--text-mut); }
+.mn-toggle { font-size: 15px; padding: 2px 4px; opacity: .75; }
+.vocab-mn {
+  margin-top: 5px; font-size: 12.5px; font-weight: 600; line-height: 1.45;
+  color: var(--text-mut); background: var(--gold-soft);
+  border-left: 3px solid var(--gold); border-radius: 6px; padding: 6px 10px;
+}
+.vocab-mn[hidden] { display: none; }
+
+/* truco de memoria en el feedback de fallo */
+.feedback .mn {
+  margin-top: 6px; font-size: 13.5px; font-weight: 600;
+  background: var(--gold-soft); border-left: 3px solid var(--gold);
+  border-radius: 6px; padding: 6px 10px;
+  color: var(--text) !important;
+}
 
 /* ---------- Logros ---------- */
 .badges-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }

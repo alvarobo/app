@@ -145,6 +145,8 @@ function learnedWords() {
   return out;
 }
 
+function getMn(eu) { return (typeof MNEMONICS !== "undefined" && MNEMONICS[eu]) || null; }
+
 /* ---------------- Repaso espaciado (cajas de Leitner) ----------------
    Cada palabra sube de caja al acertarla y cae a la caja 0 al fallarla.
    La caja determina cuándo "vence" el siguiente repaso. */
@@ -563,6 +565,35 @@ function exType(item) {
   };
 }
 
+// Producción escrita: del español al euskera (lo que pide el examen).
+function exTypeEU(item) {
+  return {
+    type: "type",
+    title: "Escribe en euskera",
+    promptText: item.es,
+    answer: item.eu,
+    accepts: [item.eu],
+    solution: `${item.es} = ${item.eu}`,
+    wordKey: item.eu,
+  };
+}
+
+// Comprensión auditiva de frase completa: escucha y elige el significado.
+function exListenPhrase(phrase, unit) {
+  const others = sample(unit.phrases.filter(p => p !== phrase), 3);
+  const globalOthers = sample(COURSE.flatMap(u => u.phrases).filter(p => p.es !== phrase.es), 3);
+  const wrong = (others.length >= 3 ? others : globalOthers).map(p => p.es).slice(0, 3);
+  return {
+    type: "listen",
+    title: "Escucha la frase: ¿qué significa?",
+    speakText: phrase.eu,
+    options: shuffle([phrase.es, ...wrong]),
+    answer: phrase.es,
+    accepts: [phrase.es],
+    solution: `${phrase.eu} = ${phrase.es}`,
+  };
+}
+
 // Completar hueco con las estructuras gramaticales de la unidad.
 function exDrill(d) {
   return {
@@ -623,9 +654,11 @@ function buildLesson(unit, lessonIdx) {
   if (drills.length) exs.push(exDrill(drills[(lessonIdx * 2) % drills.length]));
   exs.push(exMatch(unit.words));
   if (unit.phrases.length) exs.push(exWordbank(pick(unit.phrases), unit));
-  exs.push(exType(w()));
+  // Alterna comprensión (eu→es) y producción (es→eu), como el examen.
+  exs.push(lessonIdx % 2 === 1 ? exTypeEU(w()) : exType(w()));
   if (unit.phrases.length) exs.push(exFillPhrase(pick(unit.phrases), unit));
-  exs.push(exListen(w(), unit.words));
+  // Desde la 2ª lección, la escucha pasa a frases completas.
+  exs.push(lessonIdx >= 1 && unit.phrases.length ? exListenPhrase(pick(unit.phrases), unit) : exListen(w(), unit.words));
   if (drills.length > 1) exs.push(exDrill(drills[(lessonIdx * 2 + 1) % drills.length]));
   exs.push(exChoice(w(), unit.words, "eu-es"));
 
@@ -661,12 +694,13 @@ function buildExam() {
   for (let i = 0; i < EXAM_A1.size; i++) {
     const u = pick(COURSE);
     const w = pick(u.words);
-    const k = i % 6;
+    const k = i % 7;
     if (k === 0) exs.push(exChoice(w, pool, "eu-es"));
     else if (k === 1) exs.push(exChoice(w, pool, "es-eu"));
-    else if (k === 2) exs.push(exListen(w, pool));
+    else if (k === 2) exs.push(exListenPhrase(pick(u.phrases), u));
     else if (k === 3) exs.push(exWordbank(pick(u.phrases), u));
-    else if (k === 4) exs.push(exType(w));
+    else if (k === 4) exs.push(i % 2 ? exTypeEU(w) : exType(w));
+    else if (k === 5) exs.push(exListen(w, pool));
     else {
       const drills = DRILLS[u.id];
       exs.push(drills && drills.length ? exDrill(pick(drills)) : exChoice(w, pool, "eu-es"));
@@ -805,6 +839,20 @@ function finishLesson() {
   else if (s.mode === "practice" && Math.random() < 0.35) music = pickMusic(null);
   if (music) S.musicShown[music.id] = true;
   const tip = music ? null : pick(TIPS);
+  const failedExs = (s.failedExs || []).slice(0, 10);
+
+  if (s.mode === "redo") {
+    xp = 3 + Math.min(3, s.bestCombo);
+    addXp(xp);
+    bumpStreak();
+    checkBadges();
+    saveState();
+    sfxWin();
+    route = { view: "results", xp, gems: 0, acc, perfect: s.wrong === 0, mode: "redo", tip, failedExs };
+    session = null;
+    render();
+    return;
+  }
 
   if (s.mode === "lesson") {
     xp = 10 + s.bestCombo;
@@ -824,7 +872,8 @@ function finishLesson() {
     checkBadges();
     saveState();
     sfxWin();
-    route = { view: "results", exam: true, xp, gems, acc, perfect: s.wrong === 0, tip, music };
+    const nota = Math.round((s.correct / (s.correct + s.wrong)) * 10 * 10) / 10;
+    route = { view: "results", exam: true, xp, gems, acc, nota, perfect: s.wrong === 0, tip, music, failedExs };
     session = null;
     render();
     return;
@@ -844,8 +893,21 @@ function finishLesson() {
   checkBadges();
   saveState();
   sfxWin();
-  route = { view: "results", xp, gems, acc, perfect: s.wrong === 0, mode: s.mode, tip, music };
+  route = { view: "results", xp, gems, acc, perfect: s.wrong === 0, mode: s.mode, tip, music, failedExs };
   session = null;
+  render();
+}
+
+// Repaso inmediato de los ejercicios fallados: corregir el error en
+// caliente es de lo más efectivo que hay para fijarlo.
+function startRedo(exs) {
+  if (!exs || !exs.length) return;
+  session = {
+    mode: "redo",
+    exercises: shuffle(exs),
+    current: 0, correct: 0, wrong: 0, combo: 0, bestCombo: 0, checked: false,
+  };
+  route = { view: "lesson" };
   render();
 }
 
@@ -953,6 +1015,12 @@ function renderHome() {
   app.querySelectorAll("[data-verb]").forEach(b =>
     b.addEventListener("click", () => showVerbModal(VERB_TABLES.find(v => v.id === b.dataset.verb))));
 
+  app.querySelectorAll("[data-mn]").forEach(b =>
+    b.addEventListener("click", () => {
+      const line = b.closest(".vocab-main").querySelector(".vocab-mn");
+      if (line) line.hidden = !line.hidden;
+    }));
+
   const vs = app.querySelector("#vocab-search");
   if (vs) vs.addEventListener("input", () => {
     const q = normalize(vs.value);
@@ -1024,12 +1092,19 @@ function vocabHTML() {
           const st = S.wordStats[w.eu];
           const pct = st ? Math.round(wordStrength(w.eu) * 100) : 0;
           const color = !st ? "var(--gray-2)" : pct >= 75 ? "var(--green)" : pct >= 40 ? "var(--gold)" : "var(--red)";
+          const mn = getMn(w.eu);
           return `
             <div class="vocab-row" data-search="${esc(normalize(w.eu + " " + w.es))}">
               <button class="vocab-say" data-say="${esc(w.eu)}" aria-label="Escuchar ${esc(w.eu)}">🔊</button>
-              <span class="vocab-eu">${esc(w.eu)}</span>
-              <span class="vocab-es">${esc(w.es)}</span>
-              <div class="mini-bar"><div style="width:${st ? Math.max(pct, 8) : 0}%;background:${color}"></div></div>
+              <div class="vocab-main">
+                <div class="vocab-line">
+                  <span class="vocab-eu">${esc(w.eu)}</span>
+                  <span class="vocab-es">${esc(w.es)}</span>
+                  <div class="mini-bar"><div style="width:${st ? Math.max(pct, 8) : 0}%;background:${color}"></div></div>
+                  ${mn ? `<button class="mn-toggle" data-mn aria-label="Truco de memoria">💡</button>` : ""}
+                </div>
+                ${mn ? `<div class="vocab-mn" hidden>💡 ${esc(mn)}</div>` : ""}
+              </div>
             </div>`;
         }).join("")}
       </div>`).join("")}`;
@@ -1379,6 +1454,8 @@ function renderLesson() {
     ? `<span style="color:var(--blue);font-weight:900">∞</span>`
     : s.mode === "story"
     ? `<span style="color:var(--purple);font-weight:900">📖</span>`
+    : s.mode === "redo"
+    ? `<span style="color:var(--blue);font-weight:900">🔁</span>`
     : s.mode === "exam"
     ? `<span style="color:var(--purple);font-weight:900">🎓 ${Math.max(0, EXAM_A1.maxErrors - s.wrong)}</span>`
     : `❤️ ${S.hearts}`;
@@ -1584,6 +1661,7 @@ function renderExercise(ex) {
   skipBtn.addEventListener("click", () => {
     // Saltar cuenta como fallo sin quitar vida.
     session.wrong++; session.combo = 0;
+    (session.failedExs = session.failedExs || []).push(ex);
     showFeedback(false, ex, { skipped: true });
   });
 }
@@ -1608,6 +1686,7 @@ function checkAnswer(ex, raw) {
     if (session.combo === 5 || session.combo === 10) toast(`🔥 ¡Combo de ${session.combo}!`);
   } else {
     session.wrong++; session.combo = 0;
+    (session.failedExs = session.failedExs || []).push(ex); // para repasar al final
     sfxKo();
     try { if (navigator.vibrate) navigator.vibrate([50, 40, 80]); } catch (e) {}
     if (session.mode === "lesson") {
@@ -1637,10 +1716,12 @@ function showFeedback(ok, ex, { skipped } = {}) {
   footer.classList.add(ok ? "ok" : "ko");
   const inner = document.getElementById("footer-inner");
   const heartsNote = (!ok && !skipped && session.mode === "lesson") ? ` · −1 ❤️` : "";
+  const mn = !ok && ex.wordKey ? getMn(ex.wordKey) : null;
   inner.innerHTML = `
     <div class="feedback ${ok ? "ok" : "ko"}">
       <h3>${ok ? "✅ ¡Muy bien! Oso ondo!" : (skipped ? "⏭️ Ejercicio saltado" : "❌ Incorrecto" + heartsNote)}</h3>
       ${!ok ? `<p>Respuesta correcta: <b>${esc(ex.solution || ex.answer)}</b></p>` : ""}
+      ${mn ? `<p class="mn">💡 ${esc(mn)}</p>` : ""}
     </div>
     <button class="btn ${ok ? "btn-primary" : "btn-red"}" id="continue">Continuar</button>`;
   document.getElementById("continue").addEventListener("click", nextExercise);
@@ -1682,14 +1763,17 @@ function renderResults() {
         <h1>Azterketa A1 gainditua!</h1>
         <p class="sub">¡Has aprobado el examen del nivel A1! Zorionak!<br>El nivel A2 llegará próximamente.</p>
         <div class="result-cards">
-          <div class="result-card xp"><div class="rc-title">XP</div><div class="rc-value" id="xp-count">+0</div></div>
-          <div class="result-card acc"><div class="rc-title">Precisión</div><div class="rc-value">${r.acc}%</div></div>
+          <div class="result-card xp"><div class="rc-title">Nota</div><div class="rc-value">${r.nota}/10</div></div>
+          <div class="result-card acc"><div class="rc-title">XP</div><div class="rc-value" id="xp-count">+0</div></div>
           <div class="result-card combo"><div class="rc-title">Gemas</div><div class="rc-value">+${r.gems} 💎</div></div>
         </div>
         ${extraCardHTML(r)}
+        ${r.failedExs && r.failedExs.length ? `<button class="btn btn-blue btn-full" id="redo" style="max-width:320px">🔁 Repasar mis ${r.failedExs.length} fallo${r.failedExs.length === 1 ? "" : "s"}</button>` : ""}
         <button class="btn btn-primary btn-full" id="go-home" style="max-width:320px">Continuar</button>
       </div>`;
     document.getElementById("go-home").addEventListener("click", () => { route = { view: "home", tab: "learn" }; render(); });
+    const rd = document.getElementById("redo");
+    if (rd) rd.addEventListener("click", () => startRedo(r.failedExs));
     launchConfetti();
     countUp(document.getElementById("xp-count"), r.xp);
     return;
@@ -1712,16 +1796,19 @@ function renderResults() {
     <div class="results">
       <div class="big-emoji">${r.perfect ? "🏆" : "🎉"}</div>
       <h1>${r.perfect ? "¡Lección perfecta!" : "¡Lección completada!"}</h1>
-      <p class="sub">${r.mode === "practice" ? "Práctica terminada — Bikain! (+1 ❤️)" : r.mode === "story" ? "Istorioa osatuta! (¡Historia completada!)" : "Zorionak! (¡Enhorabuena!)"}</p>
+      <p class="sub">${r.mode === "practice" ? "Práctica terminada — Bikain! (+1 ❤️)" : r.mode === "story" ? "Istorioa osatuta! (¡Historia completada!)" : r.mode === "redo" ? "Fallos repasados — así se aprende de verdad 💪" : "Zorionak! (¡Enhorabuena!)"}</p>
       <div class="result-cards">
         <div class="result-card xp"><div class="rc-title">XP total</div><div class="rc-value" id="xp-count">+0</div></div>
         <div class="result-card acc"><div class="rc-title">Precisión</div><div class="rc-value">${r.acc}%</div></div>
         ${r.gems ? `<div class="result-card combo"><div class="rc-title">Gemas</div><div class="rc-value">+${r.gems} 💎</div></div>` : ""}
       </div>
       ${extraCardHTML(r)}
+      ${r.failedExs && r.failedExs.length ? `<button class="btn btn-blue btn-full" id="redo" style="max-width:320px">🔁 Repasar mis ${r.failedExs.length} fallo${r.failedExs.length === 1 ? "" : "s"}</button>` : ""}
       <button class="btn btn-primary btn-full" id="go-home" style="max-width:320px">Continuar</button>
     </div>`;
   document.getElementById("go-home").addEventListener("click", () => { route = { view: "home", tab: "learn" }; render(); });
+  const rd = document.getElementById("redo");
+  if (rd) rd.addEventListener("click", () => startRedo(r.failedExs));
   launchConfetti();
   countUp(document.getElementById("xp-count"), r.xp);
 }

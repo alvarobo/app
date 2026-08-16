@@ -156,8 +156,14 @@ const COURSE = [
       { eu: "bederatzi", es: "nueve" },
       { eu: "hamar", es: "diez" },
       { eu: "hamaika", es: "once" },
+      { eu: "hamabi", es: "doce" },
+      { eu: "hamabost", es: "quince" },
       { eu: "hogei", es: "veinte" },
+      { eu: "hogeita hamar", es: "treinta" },
       { eu: "berrogei", es: "cuarenta" },
+      { eu: "berrogeita hamar", es: "cincuenta" },
+      { eu: "hirurogei", es: "sesenta" },
+      { eu: "laurogei", es: "ochenta" },
       { eu: "ehun", es: "cien" },
     ],
     phrases: [
@@ -166,6 +172,8 @@ const COURSE = [
       { eu: "Bi eta hiru bost dira", es: "Dos y tres son cinco" },
       { eu: "Hamar euro dira", es: "Son diez euros" },
       { eu: "Ehun urte ditu amonak", es: "La abuela tiene cien años" },
+      { eu: "Hogeita hamar euro balio du", es: "Cuesta treinta euros" },
+      { eu: "Laurogei urte ditu aitonak", es: "El abuelo tiene ochenta años" },
     ],
   },
   {
@@ -421,7 +429,9 @@ const COURSE = [
       { eu: "Zer ordu da", es: "Qué hora es" },
       { eu: "Ordu bata da", es: "Es la una" },
       { eu: "Hirurak dira", es: "Son las tres" },
+      { eu: "Hiru eta erdiak dira", es: "Son las tres y media" },
       { eu: "Asteburuan hondartzara noa", es: "El fin de semana voy a la playa" },
+      { eu: "Bihar arratsaldean ikusiko gara", es: "Nos veremos mañana por la tarde" },
     ],
   },
   {
@@ -853,6 +863,131 @@ const DRILLS = {
 };
 
 /* ------------------------------------------------------------
+   Mnemotecnias: trucos de memoria por palabra (clave = eu).
+   Se muestran al fallar la palabra (momento óptimo de fijación)
+   y bajo demanda en la pestaña Palabras. Muchas se apoyan en la
+   etimología real: esas fijan doble.
+   ------------------------------------------------------------ */
+const MNEMONICS = {
+  // Saludos
+  "kaixo": "Suena a «¡qué majo!» — saludas a alguien majo: kaixo!",
+  "agur": "Como «augurios»: al despedirte deseas buenos augurios.",
+  "egun on": "egun = día → «buen día». Lo verás en periódicos: Egun On!",
+  "arratsalde on": "arratsalde = tarde. La palabra es larga… como las tardes.",
+  "gabon": "gau = noche + on = buena: «buena noche» comprimido.",
+  "gero arte": "gero = luego, arte = hasta → «hasta luego», literal.",
+  "bihar arte": "bihar = mañana + arte = hasta → «hasta mañana».",
+  "ongi etorri": "ongi = bien + etorri = venir: «bien venido», calcado.",
+  "mesedez": "«Me-se-dez»: ¡me lo des, por favor!",
+  "eskerrik asko": "esker = agradecimiento, asko = mucho: «muchas gracias».",
+  "ez horregatik": "ez = no: «no (hay) por qué» — de nada.",
+  "barkatu": "Suena a «embarcar»: perdón, ¡que me embarco!",
+  // Presentarse
+  "izena": "Suena a «señas»: dar tus señas = dar tu nombre.",
+  "abizena": "abi + izena: el «apellido» va pegado al nombre.",
+  "ikaslea": "ikasi = aprender → ikaslea, el que aprende.",
+  "irakaslea": "Como ikaslea pero con «ra» de enseñaR: el profesor.",
+  "euskalduna": "Literalmente «el que tiene el euskera»: euskal + duna.",
+  "laguna": "En Euskadi oirás «aupa, laguna!»: colega, amigo.",
+  // Números
+  "bat": "Un BATe: uno solo basta.",
+  "bi": "BIcicleta: dos ruedas.",
+  "bost": "«Bostekoa» = ¡choca esos cinco! (bost = 5 dedos).",
+  "hamar": "«Amar» con h: amar con los diez dedos.",
+  "hogei": "El euskera cuenta en base veinte: hogei es la base.",
+  "ehun": "Se parece a «a hundred» (cien) sin la d.",
+  "lau": "«Lau teilatu», la canción: CUATRO tejados.",
+  // Familia
+  "ama": "Tu ama te ama.",
+  "aita": "El «aita» se dice hasta en castellano en Euskadi.",
+  "amona": "ama + ona (buena): la madre buena = la abuela.",
+  "aitona": "aita + ona: el padre bueno = el abuelo.",
+  "semea": "La «semilla» de la familia: el hijo.",
+  "alaba": "A la hija se la alaba.",
+  "gurasoak": "gu = nosotros: los que nos criaron, los padres.",
+  // Describir
+  "handia": "«¡Ándia!» qué grande.",
+  "txikia": "El «chiqui» de la cuadrilla: pequeño (préstamo real).",
+  "polita": "Qué «polita» tan bonita.",
+  "zaharra": "El Alde Zaharra: la Parte Vieja de las ciudades vascas.",
+  "berria": "Etxeberria = casa nueva. Berria = el periódico «El Nuevo».",
+  "ona": "Egun ON, gabON: on = bueno, escondido en los saludos.",
+  "txarra": "Suena a «chatarra»: lo malo, a la chatarra.",
+  // Colores
+  "gorria": "GORRo rojo.",
+  "urdina": "Txuri-urdin: los colores de la Real. Urdin = azul.",
+  "berdea": "Casi «verde» dicho a la vasca.",
+  "beltza": "Ezpelette… no: piensa en «belcebú», negro como él.",
+  "zuria": "Txuri-urdin otra vez: txuri/zuri = blanco.",
+  "horia": "hori = ese/amarillo: «¡ese sol amarillo!»",
+  // Casa
+  "etxea": "Todos los Etxeberria, Etxegarai…: etxe = casa.",
+  "sukaldea": "su = fuego: donde está el fuego, la cocina.",
+  "logela": "lo = sueño + gela = cuarto: el cuarto de dormir.",
+  "komuna": "El baño es lo más «común» de la casa.",
+  "ohea": "«¡Oh!» qué cama más cómoda.",
+  "atea": "«¡Ata la puerta!» (átala, que se abre).",
+  // Rutinas
+  "gosaldu": "gose = hambre: quitarse el hambre de la mañana.",
+  "bazkaldu": "La «bazka» del mediodía: comer fuerte.",
+  "afaldu": "Con A de «anochecer»: cenar.",
+  "lo egin": "lo = sueño: «hacer sueño» = dormir.",
+  "jaiki": "¡Jai! (fiesta) — levántate, que empieza el día.",
+  "ikasi": "Ikastola = escuela vasca: ikasi = aprender.",
+  // Tiempo y semana
+  "astelehena": "aste = semana + lehen = primero: el primer día.",
+  "asteburua": "buru = cabeza/extremo: el «extremo» de la semana.",
+  "gaur": "Rima con «ahora»: hoy.",
+  "bihar": "Bihar arte = hasta mañana: bihar = mañana.",
+  "atzo": "«¡Atxo!» estornudaste ayer.",
+  "ordua": "Casi «hora» con d: ordu.",
+  // Comida
+  "ogia": "hOGaza → ogia = pan.",
+  "ura": "Agua pURA: ur = agua (Bilbao está lleno de «ur»).",
+  "esnea": "Piensa en NEStlé: esNE = leche.",
+  "ardoa": "El ARDOr del vino.",
+  "garagardoa": "garagar = cebada + ardo = vino: «vino de cebada» = cerveza.",
+  "sagarra": "Sagardoa = sidra («vino de manzana»): sagar = manzana.",
+  "gazta": "El ratón se lo «gazta» todo: el queso.",
+  // Compras
+  "denda": "De «tienda»: denda (préstamo real).",
+  "merkea": "Del «mercado»: lo barato.",
+  "garestia": "Lo caro te deja «gares-tieso».",
+  "dirua": "Casi «dinero» recortado: diru.",
+  "arropa": "La ropa te «arropa».",
+  "oinetakoak": "oin = pie: «lo de los pies» = zapatos.",
+  // Ciudad
+  "kalea": "De «calle»: kale (préstamo real).",
+  "geltokia": "gelditu = pararse: donde se para el tren.",
+  "hondartza": "hondar = arena: el arenal = la playa.",
+  "mendia": "Como «monte» con d: mendi.",
+  "ezkerra": "El castellano «izquierda» viene del euskera ezkerra.",
+  "eskuina": "esku = mano: el lado de la mano (diestra).",
+  // Transporte
+  "oinez": "oin = pie: ir «a pie».",
+  "hegazkina": "hegan = volando: la máquina que vuela.",
+  "itsasontzia": "itsaso = mar + ontzi = recipiente: el «cacharro del mar».",
+  "txartela": "Como «cartela»: tu billete.",
+  // Tiempo atmosférico
+  "euria": "El sirimiri de siempre: euria ari du.",
+  "eguzkia": "egun = día: lo que hace el día, el sol.",
+  "hotza": "«¡Otz!» — tiritando de frío.",
+  "beroa": "Un «brasero» de calor: bero.",
+  "negua": "NieVe → negua: invierno.",
+  "elurra": "lur = tierra: lo que cubre la tierra en invierno, nieve.",
+  "uda": "Uda ≈ «verano» vasco cortito, como el propio verano.",
+  // Ocio
+  "abestu": "Abesti = canción → abestu = cantar.",
+  "jolastu": "jolas = juego: jugar (de jugar, no de deporte).",
+  // Trabajo
+  "lana": "Currar da «lana» (pasta): lan = trabajo.",
+  "langilea": "lan + gile (hacedor): el que hace el trabajo.",
+  "erizaina": "eri = enfermo + zain = cuidador: quien cuida enfermos.",
+  "sukaldaria": "El de la sukaldea (cocina): cocinero.",
+  "ordenagailua": "ordenador + gailu (aparato): el aparato de ordenar.",
+};
+
+/* ------------------------------------------------------------
    Mini-historias A1: diálogos cortos con preguntas de
    comprensión, como la parte de lectura del examen oficial.
    Cada historia se desbloquea al empezar su unidad.
@@ -1156,7 +1291,7 @@ const TIPS = [
 
 // Versión de la app: se muestra en el perfil y debe coincidir con la
 // caché del service worker (sw.js). Subir en cada release.
-const APP_VERSION = "1.9.0";
+const APP_VERSION = "2.0.0";
 const APP_DATE = "16/08/2026";
 
 // Nº de lecciones por unidad (la última es el repaso/examen de la unidad)
