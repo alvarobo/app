@@ -685,6 +685,105 @@ button, .chip, .option, .match-btn, .lesson-btn {
 }
 .tip-card b { color: var(--text); }
 
+/* ---------- Frase del día ---------- */
+.potd {
+  display: flex; align-items: center; gap: 12px;
+  border: 2px solid var(--border); border-radius: var(--radius-lg);
+  background: var(--surface);
+  padding: 12px 16px; margin-bottom: 14px;
+}
+.potd-ico { font-size: 22px; }
+.potd-eu { font-weight: 900; font-size: 15px; }
+.potd-es { font-size: 12.5px; color: var(--text-mut); font-weight: 600; }
+
+/* ---------- Badge de repasos pendientes ---------- */
+.nav-btn .ico { position: relative; }
+.nav-badge {
+  position: absolute; top: -4px; right: -10px;
+  background: var(--red); color: #fff;
+  font-size: 10px; font-weight: 900; line-height: 1;
+  padding: 3px 5px; border-radius: 999px;
+  border: 2px solid var(--bg);
+}
+
+/* ---------- Práctica: repasos y protector ---------- */
+.section-title { font-size: 18px; font-weight: 900; margin: 24px 0 6px; }
+.due-card, .freeze-card {
+  display: flex; align-items: center; gap: 12px;
+  border: 2px solid var(--border); border-radius: var(--radius-lg);
+  background: var(--surface);
+  padding: 14px 16px; margin-bottom: 12px;
+}
+.due-card.has-due { border-color: var(--blue); background: var(--blue-soft); }
+.due-ico { font-size: 26px; }
+.due-title { font-weight: 900; font-size: 15px; }
+.due-sub { font-size: 12.5px; color: var(--text-mut); font-weight: 600; }
+
+/* ---------- Mini-historias ---------- */
+.stories-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.story-card {
+  border: 2px solid var(--border); border-radius: var(--radius);
+  background: var(--surface);
+  padding: 14px 10px; text-align: center;
+  display: flex; flex-direction: column; gap: 4px; align-items: center;
+  box-shadow: 0 3px 0 var(--border);
+  transition: background .1s;
+}
+@media (hover: hover) { .story-card:not(.locked):hover { background: var(--surface-2); } }
+.story-card:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--border); }
+.story-card.locked { opacity: .55; cursor: not-allowed; box-shadow: none; }
+.story-ico { font-size: 30px; }
+.story-name { font-weight: 900; font-size: 14px; }
+.story-state { font-size: 11.5px; font-weight: 800; color: var(--text-mut); text-transform: uppercase; letter-spacing: .4px; }
+
+.story { max-width: 640px; margin: 0 auto; width: 100%; padding: 6px 16px 60px; }
+.story-line { display: flex; gap: 10px; margin-bottom: 14px; align-items: flex-end; }
+.story-line.right { flex-direction: row-reverse; }
+.story-who { font-size: 30px; }
+.story-bubble {
+  position: relative; max-width: 78%;
+  background: var(--surface-2); border: 2px solid var(--border);
+  border-radius: 16px; padding: 10px 14px 10px 44px;
+}
+.story-line.right .story-bubble { background: var(--blue-soft); border-color: var(--blue); }
+.story-say {
+  position: absolute; left: 8px; top: 10px;
+  width: 28px; height: 28px; border-radius: 8px;
+  background: var(--surface); border: 1px solid var(--border);
+  font-size: 13px;
+}
+.story-eu { font-weight: 800; font-size: 15.5px; }
+.story-es { font-size: 13px; color: var(--text-mut); font-weight: 600; margin-top: 3px; }
+.story-es[hidden] { display: none; }
+.story-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 20px; }
+
+/* ---------- Verbos y buscador ---------- */
+.verb-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.verb-btn {
+  border: 2px solid var(--border); border-radius: 12px;
+  background: var(--surface); box-shadow: 0 3px 0 var(--border);
+  padding: 11px 8px; font-weight: 800; font-size: 14px;
+}
+.verb-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--border); }
+@media (hover: hover) { .verb-btn:hover { background: var(--surface-2); } }
+.verb-table { text-align: left; margin-bottom: 18px; }
+.verb-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 12px; border-bottom: 1px solid var(--surface-2);
+  font-size: 15px; font-weight: 600; color: var(--text-mut);
+}
+.verb-row:last-child { border-bottom: none; }
+.verb-row b { font-size: 16px; color: var(--text); }
+.vocab-search {
+  width: 100%; padding: 12px 16px; margin-bottom: 14px;
+  border: 2px solid var(--border); border-radius: var(--radius);
+  background: var(--surface-2); color: var(--text);
+  font-family: inherit; font-size: 16px; font-weight: 600;
+  outline: none;
+}
+.vocab-search:focus { border-color: var(--blue); }
+.vocab-search::placeholder { color: var(--text-faint); }
+
 /* ---------- Confeti ---------- */
 .confetti {
   position: fixed; top: -14px; z-index: 80;

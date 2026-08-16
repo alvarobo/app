@@ -853,6 +853,159 @@ const DRILLS = {
 };
 
 /* ------------------------------------------------------------
+   Mini-historias A1: diálogos cortos con preguntas de
+   comprensión, como la parte de lectura del examen oficial.
+   Cada historia se desbloquea al empezar su unidad.
+   ------------------------------------------------------------ */
+const STORIES = [
+  {
+    id: "st-agurrak", unit: "agurrak", icon: "👋", title: "Kaixo eta agur",
+    lines: [
+      { who: "👩", eu: "Kaixo, Jon! Zer moduz?", es: "¡Hola, Jon! ¿Qué tal?" },
+      { who: "👨", eu: "Oso ondo, eskerrik asko. Eta zu?", es: "Muy bien, gracias. ¿Y tú?" },
+      { who: "👩", eu: "Ondo, ondo.", es: "Bien, bien." },
+      { who: "👨", eu: "Barkatu, banoa. Gero arte!", es: "Perdona, me voy. ¡Hasta luego!" },
+      { who: "👩", eu: "Agur, bihar arte!", es: "Adiós, ¡hasta mañana!" },
+    ],
+    questions: [
+      { q: "¿Cómo está Jon?", options: ["oso ondo", "gaizki", "haserre", "nekatuta"], answer: "oso ondo" },
+      { q: "¿Qué le dice ella al despedirse?", options: ["Agur, bihar arte", "Egun on", "Ongi etorri", "Ez horregatik"], answer: "Agur, bihar arte" },
+    ],
+  },
+  {
+    id: "st-aurkezpenak", unit: "aurkezpenak", icon: "🙋", title: "Ezagutzen gara",
+    lines: [
+      { who: "👨", eu: "Kaixo! Nola duzu izena?", es: "¡Hola! ¿Cómo te llamas?" },
+      { who: "👩", eu: "Nire izena Maite da. Eta zuk?", es: "Mi nombre es Maite. ¿Y tú?" },
+      { who: "👨", eu: "Ni Jon naiz. Nongoa zara, Maite?", es: "Yo soy Jon. ¿De dónde eres, Maite?" },
+      { who: "👩", eu: "Donostiakoa naiz. Eta zu?", es: "Soy de San Sebastián. ¿Y tú?" },
+      { who: "👨", eu: "Ni Bilbokoa naiz. Euskara ikasten dut.", es: "Yo soy de Bilbao. Aprendo euskera." },
+      { who: "👩", eu: "Oso ondo!", es: "¡Muy bien!" },
+    ],
+    questions: [
+      { q: "¿De dónde es Maite?", options: ["Donostiakoa", "Bilbokoa", "Gasteizkoa", "Iruñekoa"], answer: "Donostiakoa" },
+      { q: "¿Qué aprende Jon?", options: ["euskara", "musika", "frantsesa", "historia"], answer: "euskara" },
+    ],
+  },
+  {
+    id: "st-familia", unit: "familia", icon: "👨‍👩‍👧‍👦", title: "Familia argazkia",
+    lines: [
+      { who: "👧", eu: "Begira, hau nire familia da.", es: "Mira, esta es mi familia." },
+      { who: "👦", eu: "Nor da emakume hau?", es: "¿Quién es esta mujer?" },
+      { who: "👧", eu: "Nire ama da, Miren.", es: "Es mi madre, Miren." },
+      { who: "👦", eu: "Eta gizon hau zure aita da?", es: "¿Y este hombre es tu padre?" },
+      { who: "👧", eu: "Bai, Patxi da. Eta hauek nire bi anaiak dira.", es: "Sí, es Patxi. Y estos son mis dos hermanos." },
+      { who: "👦", eu: "Familia handia eta polita!", es: "¡Una familia grande y bonita!" },
+    ],
+    questions: [
+      { q: "¿Cómo se llama la madre?", options: ["Miren", "Maite", "Ane", "Edurne"], answer: "Miren" },
+      { q: "¿Cuántos hermanos tiene?", options: ["bi", "hiru", "bat", "lau"], answer: "bi" },
+    ],
+  },
+  {
+    id: "st-janaria", unit: "janaria", icon: "🍎", title: "Tabernan",
+    lines: [
+      { who: "🧑‍🍳", eu: "Egun on! Zer nahi duzu?", es: "¡Buenos días! ¿Qué quieres?" },
+      { who: "👨", eu: "Kaixo! Kafesne bat, mesedez.", es: "¡Hola! Un café con leche, por favor." },
+      { who: "🧑‍🍳", eu: "Zerbait jateko?", es: "¿Algo para comer?" },
+      { who: "👨", eu: "Bai, pintxo bat nahi dut.", es: "Sí, quiero un pintxo." },
+      { who: "🧑‍🍳", eu: "Oso ondo. Hiru euro dira.", es: "Muy bien. Son tres euros." },
+      { who: "👨", eu: "Hemen duzu. Eskerrik asko!", es: "Aquí tienes. ¡Gracias!" },
+    ],
+    questions: [
+      { q: "¿Qué pide para beber?", options: ["kafesne bat", "ardo bat", "ura", "garagardo bat"], answer: "kafesne bat" },
+      { q: "¿Cuánto paga?", options: ["hiru euro", "bi euro", "bost euro", "hamar euro"], answer: "hiru euro" },
+    ],
+  },
+  {
+    id: "st-herria", unit: "herria", icon: "🏙️", title: "Kalean galduta",
+    lines: [
+      { who: "👨", eu: "Barkatu, non dago tren geltokia?", es: "Perdone, ¿dónde está la estación de tren?" },
+      { who: "👵", eu: "Zuzen joan eta gero ezkerrera.", es: "Ve recto y luego a la izquierda." },
+      { who: "👨", eu: "Urrun dago?", es: "¿Está lejos?" },
+      { who: "👵", eu: "Ez, oso gertu dago. Bost minutu oinez.", es: "No, está muy cerca. Cinco minutos a pie." },
+      { who: "👨", eu: "Eskerrik asko!", es: "¡Muchas gracias!" },
+      { who: "👵", eu: "Ez horregatik. Agur!", es: "De nada. ¡Adiós!" },
+    ],
+    questions: [
+      { q: "¿Qué busca el hombre?", options: ["geltokia", "ospitalea", "eskola", "jatetxea"], answer: "geltokia" },
+      { q: "¿A cuánto está a pie?", options: ["bost minutu", "hamar minutu", "ordu bat", "hogei minutu"], answer: "bost minutu" },
+    ],
+  },
+  {
+    id: "st-ordua", unit: "ordua", icon: "📅", title: "Asteburua",
+    lines: [
+      { who: "👩", eu: "Zer egiten duzu larunbatetan?", es: "¿Qué haces los sábados?" },
+      { who: "👨", eu: "Goizean futbolean jokatzen dut.", es: "Por la mañana juego al fútbol." },
+      { who: "👩", eu: "Eta arratsaldean?", es: "¿Y por la tarde?" },
+      { who: "👨", eu: "Mendira joaten naiz lagunekin.", es: "Voy al monte con amigos." },
+      { who: "👩", eu: "Eta igandean?", es: "¿Y el domingo?" },
+      { who: "👨", eu: "Igandean etxean deskantsatzen dut.", es: "El domingo descanso en casa." },
+    ],
+    questions: [
+      { q: "¿Cuándo juega al fútbol?", options: ["larunbat goizean", "igandean", "astelehenean", "gauean"], answer: "larunbat goizean" },
+      { q: "¿Qué hace el domingo?", options: ["etxean deskantsatu", "futbolean jokatu", "mendira joan", "lan egin"], answer: "etxean deskantsatu" },
+    ],
+  },
+  {
+    id: "st-eguraldia", unit: "eguraldia", icon: "🌦️", title: "Zer eguraldi!",
+    lines: [
+      { who: "👨", eu: "Kaixo, Ane! Zer moduz?", es: "¡Hola, Ane! ¿Qué tal?" },
+      { who: "👩", eu: "Ondo, baina euria ari du eta hotz egiten du.", es: "Bien, pero está lloviendo y hace frío." },
+      { who: "👨", eu: "Bai, eguraldi txarra dago gaur.", es: "Sí, hoy hace mal tiempo." },
+      { who: "👩", eu: "Bihar eguzkia egongo da?", es: "¿Mañana habrá sol?" },
+      { who: "👨", eu: "Bai! Bihar hondartzara goaz?", es: "¡Sí! ¿Vamos mañana a la playa?" },
+      { who: "👩", eu: "Bai, primeran!", es: "¡Sí, genial!" },
+    ],
+    questions: [
+      { q: "¿Qué tiempo hace hoy?", options: ["euria eta hotza", "eguzkia eta beroa", "elurra", "haize handia"], answer: "euria eta hotza" },
+      { q: "¿Adónde van mañana?", options: ["hondartzara", "mendira", "eskolara", "lanera"], answer: "hondartzara" },
+    ],
+  },
+  {
+    id: "st-lana", unit: "lana", icon: "💼", title: "Lanbideak",
+    lines: [
+      { who: "👩", eu: "Zertan egiten duzu lan, Mikel?", es: "¿En qué trabajas, Mikel?" },
+      { who: "👨", eu: "Erizaina naiz. Ospitalean lan egiten dut.", es: "Soy enfermero. Trabajo en el hospital." },
+      { who: "👩", eu: "Gustatzen zaizu zure lana?", es: "¿Te gusta tu trabajo?" },
+      { who: "👨", eu: "Bai, asko gustatzen zait. Eta zu, zertan?", es: "Sí, me gusta mucho. ¿Y tú, en qué?" },
+      { who: "👩", eu: "Ni irakaslea naiz, eskolan.", es: "Yo soy profesora, en la escuela." },
+      { who: "👨", eu: "Lanbide polita!", es: "¡Bonita profesión!" },
+    ],
+    questions: [
+      { q: "¿En qué trabaja Mikel?", options: ["erizaina", "medikua", "irakaslea", "sukaldaria"], answer: "erizaina" },
+      { q: "¿Dónde trabaja ella?", options: ["eskolan", "ospitalean", "bulegoan", "tabernan"], answer: "eskolan" },
+    ],
+  },
+];
+
+/* ------------------------------------------------------------
+   Tablas de referencia de los verbos esenciales del A1.
+   ------------------------------------------------------------ */
+const VERB_TABLES = [
+  {
+    id: "izan", label: "izan · ser",
+    note: "El verbo más importante: Ni Ane naiz (yo soy Ane).",
+    rows: [["ni", "naiz"], ["zu", "zara"], ["bera", "da"], ["gu", "gara"], ["zuek", "zarete"], ["haiek", "dira"]],
+  },
+  {
+    id: "egon", label: "egon · estar",
+    note: "Lugares y estados: Sukaldean nago (estoy en la cocina).",
+    rows: [["ni", "nago"], ["zu", "zaude"], ["bera", "dago"], ["gu", "gaude"], ["zuek", "zaudete"], ["haiek", "daude"]],
+  },
+  {
+    id: "ukan", label: "ukan · tener",
+    note: "Con una cosa: dut. Con varias: ditut (Bi anaia ditut).",
+    rows: [["nik", "dut / ditut"], ["zuk", "duzu / dituzu"], ["berak", "du / ditu"], ["guk", "dugu / ditugu"], ["zuek", "duzue / dituzue"], ["haiek", "dute / dituzte"]],
+  },
+  {
+    id: "joan", label: "joan · ir",
+    note: "Sintético, sin auxiliar: Etxera noa (voy a casa).",
+    rows: [["ni", "noa"], ["zu", "zoaz"], ["bera", "doa"], ["gu", "goaz"], ["zuek", "zoazte"], ["haiek", "doaz"]],
+  },
+];
+
+/* ------------------------------------------------------------
    Música en euskera ligada a las unidades: cada recomendación
    indica qué palabras del curso aparecen o resuenan en la
    canción. Se muestran al terminar lecciones y se coleccionan
@@ -1003,7 +1156,7 @@ const TIPS = [
 
 // Versión de la app: se muestra en el perfil y debe coincidir con la
 // caché del service worker (sw.js). Subir en cada release.
-const APP_VERSION = "1.8.1";
+const APP_VERSION = "1.9.0";
 const APP_DATE = "16/08/2026";
 
 // Nº de lecciones por unidad (la última es el repaso/examen de la unidad)

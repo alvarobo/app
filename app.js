@@ -29,6 +29,8 @@ const defaultState = () => ({
   sound: true,            // efectos de sonido
   musicShown: {},         // id de canción -> true (playlist descubierta)
   theme: "auto",          // "auto" | "light" | "dark"
+  streakFreezes: 0,       // protectores de racha equipados (máx. 2)
+  stories: {},            // id de historia -> true (completada)
 });
 
 let S = loadState();
@@ -62,8 +64,7 @@ if (window.matchMedia) {
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
 }
 
-function todayStr() {
-  const d = new Date();
+function todayStr(d = new Date()) {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
 
@@ -71,12 +72,34 @@ function daysBetween(a, b) {
   return Math.round((new Date(b) - new Date(a)) / 86400000);
 }
 
-// Racha: si el último día activo fue antes de ayer, se rompe.
+// Racha: si el último día activo fue antes de ayer, se rompe…
+// salvo que haya protectores 🧊 equipados (uno por día perdido).
 function refreshStreak() {
-  if (S.lastDay && daysBetween(S.lastDay, todayStr()) > 1) {
+  if (!S.lastDay) return;
+  const gap = daysBetween(S.lastDay, todayStr());
+  if (gap <= 1) return;
+  const missed = gap - 1;
+  if (S.streak > 0 && (S.streakFreezes || 0) >= missed) {
+    S.streakFreezes -= missed;
+    S.lastDay = todayStr(new Date(Date.now() - 86400000)); // cuenta como activo ayer
+    setTimeout(() => toast(`🧊 Protector de racha usado — racha de ${S.streak} salvada`), 600);
+  } else if (S.streak > 0) {
     S.streak = 0;
-    saveState();
   }
+  saveState();
+}
+
+const FREEZE_COST = 200;
+const MAX_FREEZES = 2;
+
+function buyFreeze() {
+  if ((S.streakFreezes || 0) >= MAX_FREEZES) { toast(`Ya tienes ${MAX_FREEZES} protectores 🧊`); return; }
+  if (S.gems < FREEZE_COST) { toast(`Necesitas ${FREEZE_COST} 💎 (tienes ${S.gems})`); return; }
+  S.gems -= FREEZE_COST;
+  S.streakFreezes = (S.streakFreezes || 0) + 1;
+  saveState();
+  toast("🧊 Protector comprado: tu racha aguanta un día sin practicar");
+  render();
 }
 
 function bumpStreak() {
@@ -122,11 +145,27 @@ function learnedWords() {
   return out;
 }
 
-/* ---------------- Repaso inteligente (fuerza por palabra) ---------------- */
+/* ---------------- Repaso espaciado (cajas de Leitner) ----------------
+   Cada palabra sube de caja al acertarla y cae a la caja 0 al fallarla.
+   La caja determina cuándo "vence" el siguiente repaso. */
+
+const SRS_INTERVALS = [0, 1, 3, 7, 21, 60]; // días hasta el próximo repaso
 
 function noteWord(eu, ok) {
-  const st = S.wordStats[eu] || (S.wordStats[eu] = { ok: 0, ko: 0 });
-  if (ok) st.ok++; else st.ko++;
+  const st = S.wordStats[eu] || (S.wordStats[eu] = { ok: 0, ko: 0, box: 0, due: 0 });
+  if (st.box === undefined) { st.box = Math.round(wordStrength(eu) * 3); st.due = 0; } // migración
+  if (ok) { st.ok++; st.box = Math.min(SRS_INTERVALS.length - 1, st.box + 1); }
+  else { st.ko++; st.box = 0; }
+  st.due = Date.now() + SRS_INTERVALS[st.box] * 86400000;
+}
+
+// Palabras ya practicadas cuyo repaso ha vencido.
+function dueWords() {
+  const now = Date.now();
+  return learnedWords().filter(w => {
+    const st = S.wordStats[w.eu];
+    return st && (st.due === undefined || st.due <= now);
+  });
 }
 
 function wordStrength(eu) {
@@ -593,11 +632,18 @@ function buildLesson(unit, lessonIdx) {
   return exs.slice(0, EXERCISES_PER_LESSON);
 }
 
-// Práctica inteligente: repasa primero tus palabras más débiles
-// (falladas o nunca practicadas). No gasta vidas.
+// Práctica inteligente: primero las palabras cuyo repaso ha vencido
+// (repaso espaciado), después las más débiles o nunca practicadas.
+function practiceQueue(n) {
+  const due = shuffle(dueWords());
+  const seen = new Set(due.map(w => w.eu));
+  const rest = weakestWords(n * 2).filter(w => !seen.has(w.eu));
+  return [...due, ...rest].slice(0, n);
+}
+
 function buildPractice() {
   const pool = learnedWords();
-  const words = weakestWords(8);
+  const words = practiceQueue(8);
   const exs = words.map((word, i) => {
     const kind = i % 4;
     if (kind === 0) return exChoice(word, pool, "eu-es");
@@ -664,6 +710,71 @@ function startExam() {
   render();
 }
 
+/* ---------------- Mini-historias ---------------- */
+
+function storyUnlocked(st) { return (S.progress[st.unit] || 0) > 0; }
+
+function openStory(id) {
+  const st = STORIES.find(s => s.id === id);
+  if (!st || !storyUnlocked(st)) { toast("Empieza antes su unidad para desbloquearla 📖"); return; }
+  route = { view: "story", storyId: id };
+  render();
+}
+
+function startStoryQuiz(story) {
+  session = {
+    mode: "story",
+    storyId: story.id,
+    exercises: story.questions.map(q => ({
+      type: "choice",
+      title: q.q,
+      options: shuffle(q.options.slice()),
+      answer: q.answer,
+      accepts: [q.answer],
+      solution: q.answer,
+    })),
+    current: 0, correct: 0, wrong: 0, combo: 0, bestCombo: 0, checked: false,
+  };
+  route = { view: "lesson" };
+  render();
+}
+
+function renderStoryRead() {
+  const story = STORIES.find(s => s.id === route.storyId);
+  if (!story) { route = { view: "home", tab: "practice" }; render(); return; }
+  app.innerHTML = `
+    <div class="lesson-top">
+      <button class="quit-btn" id="quit" aria-label="Volver">✕</button>
+      <div style="flex:1;text-align:center;font-weight:900">${story.icon} ${esc(story.title)}</div>
+      <div style="width:38px"></div>
+    </div>
+    <div class="story">
+      <p class="page-sub" style="text-align:center">Toca 🔊 para escuchar cada línea.<br>Lee el diálogo y responde a las preguntas.</p>
+      ${story.lines.map((l, i) => `
+        <div class="story-line ${i % 2 ? "right" : ""}">
+          <div class="story-who">${l.who}</div>
+          <div class="story-bubble">
+            <button class="story-say" data-say="${esc(l.eu)}" aria-label="Escuchar">🔊</button>
+            <div class="story-eu">${esc(l.eu)}</div>
+            <div class="story-es" hidden>${esc(l.es)}</div>
+          </div>
+        </div>`).join("")}
+      <div class="story-actions">
+        <button class="btn btn-ghost" id="story-trans">👁 Mostrar traducción</button>
+        <button class="btn btn-primary" id="story-quiz">Responder preguntas ${S.stories[story.id] ? "otra vez" : ""}</button>
+      </div>
+    </div>`;
+  document.getElementById("quit").addEventListener("click", () => { route = { view: "home", tab: "practice" }; render(); });
+  app.querySelectorAll("[data-say]").forEach(b => b.addEventListener("click", () => speak(b.dataset.say)));
+  let shown = false;
+  document.getElementById("story-trans").addEventListener("click", () => {
+    shown = !shown;
+    app.querySelectorAll(".story-es").forEach(e => { e.hidden = !shown; });
+    document.getElementById("story-trans").textContent = shown ? "🙈 Ocultar traducción" : "👁 Mostrar traducción";
+  });
+  document.getElementById("story-quiz").addEventListener("click", () => startStoryQuiz(story));
+}
+
 function startPractice() {
   if (!learnedWords().length) { toast("Completa primero una lección 🙂"); return; }
   session = {
@@ -717,6 +828,13 @@ function finishLesson() {
     session = null;
     render();
     return;
+  } else if (s.mode === "story") {
+    const first = !S.stories[s.storyId];
+    xp = first ? 10 : 5;
+    gems = first ? 5 : 0;
+    S.stories[s.storyId] = true;
+    addXp(xp); S.gems += gems;
+    bumpStreak();
   } else {
     xp = 5 + Math.min(5, s.bestCombo);
     addXp(xp);
@@ -752,6 +870,7 @@ function render() {
   refreshStreak();
   if (route.view === "lesson") renderLesson();
   else if (route.view === "results") renderResults();
+  else if (route.view === "story") renderStoryRead();
   else renderHome();
   window.scrollTo(0, 0);
 }
@@ -769,17 +888,18 @@ function headerHTML() {
 }
 
 function navHTML(tab) {
+  const due = dueWords().length;
   const items = [
     { id: "learn", ico: "🏠", label: "Aprender" },
     { id: "words", ico: "📖", label: "Palabras" },
-    { id: "practice", ico: "💪", label: "Práctica" },
+    { id: "practice", ico: "💪", label: "Práctica", badge: due },
     { id: "profile", ico: "👤", label: "Perfil" },
   ];
   return `
     <nav class="bottomnav"><div class="bottomnav-inner">
       ${items.map(i => `
         <button class="nav-btn ${tab === i.id ? "active" : ""}" data-nav="${i.id}">
-          <span class="ico">${i.ico}</span>${i.label}
+          <span class="ico">${i.ico}${i.badge ? `<span class="nav-badge">${i.badge > 99 ? "99+" : i.badge}</span>` : ""}</span>${i.label}
         </button>`).join("")}
     </div></nav>`;
 }
@@ -823,6 +943,23 @@ function renderHome() {
 
   const refill = app.querySelector("#refill-hearts");
   if (refill) refill.addEventListener("click", tryRefillHearts);
+
+  const frz = app.querySelector("#buy-freeze");
+  if (frz) frz.addEventListener("click", buyFreeze);
+
+  app.querySelectorAll("[data-story]").forEach(b =>
+    b.addEventListener("click", () => openStory(b.dataset.story)));
+
+  app.querySelectorAll("[data-verb]").forEach(b =>
+    b.addEventListener("click", () => showVerbModal(VERB_TABLES.find(v => v.id === b.dataset.verb))));
+
+  const vs = app.querySelector("#vocab-search");
+  if (vs) vs.addEventListener("input", () => {
+    const q = normalize(vs.value);
+    app.querySelectorAll(".vocab-row").forEach(r => {
+      r.style.display = !q || r.dataset.search.includes(q) ? "" : "none";
+    });
+  });
 
   app.querySelectorAll("[data-say]").forEach(b =>
     b.addEventListener("click", () => speak(b.dataset.say)));
@@ -873,6 +1010,13 @@ function vocabHTML() {
   return `
     <h1 class="page-title">📖 Tus palabras</h1>
     <p class="page-sub">Toca 🔊 para escuchar. La barra muestra cómo la llevas: practica las débiles en la pestaña Práctica.</p>
+    <div class="profile-card">
+      <h2>🔤 Verbos esenciales</h2>
+      <div class="verb-btns">
+        ${VERB_TABLES.map(v => `<button class="verb-btn" data-verb="${v.id}">${esc(v.label)}</button>`).join("")}
+      </div>
+    </div>
+    <input class="vocab-search" id="vocab-search" type="search" placeholder="🔍 Buscar palabra en euskera o español…" autocomplete="off">
     ${units.map(u => `
       <div class="profile-card">
         <h2>${u.icon} ${esc(u.title)}</h2>
@@ -881,7 +1025,7 @@ function vocabHTML() {
           const pct = st ? Math.round(wordStrength(w.eu) * 100) : 0;
           const color = !st ? "var(--gray-2)" : pct >= 75 ? "var(--green)" : pct >= 40 ? "var(--gold)" : "var(--red)";
           return `
-            <div class="vocab-row">
+            <div class="vocab-row" data-search="${esc(normalize(w.eu + " " + w.es))}">
               <button class="vocab-say" data-say="${esc(w.eu)}" aria-label="Escuchar ${esc(w.eu)}">🔊</button>
               <span class="vocab-eu">${esc(w.eu)}</span>
               <span class="vocab-es">${esc(w.es)}</span>
@@ -909,9 +1053,24 @@ function heroHTML() {
     </section>`;
 }
 
+// Frase del día: rota con la fecha sobre todas las frases del curso.
+function potdHTML() {
+  const pool = COURSE.flatMap(u => u.phrases);
+  const p = pool[Math.floor(Date.now() / 86400000) % pool.length];
+  return `
+    <section class="potd">
+      <span class="potd-ico">✨</span>
+      <div style="flex:1">
+        <div class="potd-eu">${esc(p.eu)}</div>
+        <div class="potd-es">${esc(p.es)} · frase del día</div>
+      </div>
+      <button class="vocab-say" data-say="${esc(p.eu)}" aria-label="Escuchar la frase del día">🔊</button>
+    </section>`;
+}
+
 function pathHTML() {
   const a1 = LEVELS[0];
-  let html = heroHTML() + goalCardHTML() + `
+  let html = heroHTML() + goalCardHTML() + potdHTML() + `
     <section class="level-banner">
       <div class="level-badge">A1</div>
       <div>
@@ -997,6 +1156,25 @@ function pathHTML() {
   return html;
 }
 
+function showVerbModal(v) {
+  if (!v) return;
+  const wrap = document.createElement("div");
+  wrap.className = "modal-backdrop";
+  wrap.innerHTML = `
+    <div class="modal">
+      <div class="modal-emoji">🔤</div>
+      <h2>${esc(v.label)}</h2>
+      <p>${esc(v.note)}</p>
+      <div class="verb-table">
+        ${v.rows.map(r => `<div class="verb-row"><span>${esc(r[0])}</span><b>${esc(r[1])}</b></div>`).join("")}
+      </div>
+      <button class="btn btn-primary btn-full" id="v-close">Entendido</button>
+    </div>`;
+  document.body.appendChild(wrap);
+  wrap.querySelector("#v-close").addEventListener("click", () => wrap.remove());
+  wrap.addEventListener("click", e => { if (e.target === wrap) wrap.remove(); });
+}
+
 function showGrammarModal(unit) {
   const wrap = document.createElement("div");
   wrap.className = "modal-backdrop";
@@ -1020,17 +1198,48 @@ function showGrammarModal(unit) {
 
 function practiceHTML() {
   const n = learnedWords().length;
+  const due = dueWords().length;
+  const freezes = S.streakFreezes || 0;
   return `
-    <div class="results" style="padding-top:40px">
-      <div class="big-emoji">💪</div>
-      <h1 style="color:var(--blue)">Práctica</h1>
-      <p class="sub">Repasa las ${n} palabras que has aprendido.<br>
-      La práctica no gasta vidas y te devuelve <b>+1 ❤️</b> al terminar.</p>
-      <button class="btn btn-blue btn-full" id="practice-start" style="max-width:320px">Empezar práctica</button>
-      ${S.hearts < MAX_HEARTS ? `
-        <button class="btn btn-ghost btn-full" id="refill-hearts" style="max-width:320px">
-          💎 ${HEART_REFILL_COST} — Recargar vidas
-        </button>` : ""}
+    <h1 class="page-title">💪 Práctica</h1>
+    <p class="page-sub">Repaso espaciado: la app te trae cada palabra justo cuando estás a punto de olvidarla. No gasta vidas y devuelve <b>+1 ❤️</b>.</p>
+
+    <section class="due-card ${due ? "has-due" : ""}">
+      <span class="due-ico">${due ? "🔔" : "✅"}</span>
+      <div style="flex:1">
+        <div class="due-title">${due
+          ? `${due} palabra${due === 1 ? "" : "s"} espera${due === 1 ? "" : "n"} repaso hoy`
+          : n ? "Sin repasos pendientes — ¡al día!" : "Completa una lección para empezar"}</div>
+        <div class="due-sub">${n} palabra${n === 1 ? "" : "s"} en tu colección</div>
+      </div>
+      <button class="btn btn-blue" id="practice-start">Practicar</button>
+    </section>
+
+    ${S.hearts < MAX_HEARTS ? `
+      <button class="btn btn-ghost btn-full settings-btn" id="refill-hearts">💎 ${HEART_REFILL_COST} — Recargar vidas</button>` : ""}
+
+    <section class="freeze-card">
+      <span class="due-ico">🧊</span>
+      <div style="flex:1">
+        <div class="due-title">Protector de racha: ${freezes}/${MAX_FREEZES}</div>
+        <div class="due-sub">Salva tu racha un día que no practiques</div>
+      </div>
+      <button class="btn btn-ghost" id="buy-freeze">💎 ${FREEZE_COST}</button>
+    </section>
+
+    <h2 class="section-title">📖 Mini-historias</h2>
+    <p class="page-sub">Diálogos reales de nivel A1 con preguntas de comprensión, como en el examen. Se desbloquean al empezar su unidad.</p>
+    <div class="stories-grid">
+      ${STORIES.map(st => {
+        const open = storyUnlocked(st);
+        const done = !!S.stories[st.id];
+        return `
+          <button class="story-card ${open ? "" : "locked"}" data-story="${st.id}" ${open ? "" : "disabled"}>
+            <span class="story-ico">${open ? st.icon : "🔒"}</span>
+            <span class="story-name">${esc(st.title)}</span>
+            <span class="story-state">${done ? "✓ completada" : open ? "▶ leer" : "bloqueada"}</span>
+          </button>`;
+      }).join("")}
     </div>`;
 }
 
@@ -1168,6 +1377,8 @@ function renderLesson() {
   const pct = Math.round((s.current / s.exercises.length) * 100);
   const heartsHTML = s.mode === "practice"
     ? `<span style="color:var(--blue);font-weight:900">∞</span>`
+    : s.mode === "story"
+    ? `<span style="color:var(--purple);font-weight:900">📖</span>`
     : s.mode === "exam"
     ? `<span style="color:var(--purple);font-weight:900">🎓 ${Math.max(0, EXAM_A1.maxErrors - s.wrong)}</span>`
     : `❤️ ${S.hearts}`;
@@ -1222,10 +1433,12 @@ function renderExercise(ex) {
              <button class="tts-help" id="tts-reveal">¿No suena? Ver la palabra</button>
              <div class="revealed-word" id="revealed-word" hidden>${esc(ex.speakText)}</div>
            </div>`
-        : `<div class="prompt-line">
+        : ex.promptText || ex.speakText
+        ? `<div class="prompt-line">
              ${ex.speakText ? `<button class="speaker-btn" id="speak">🔊</button>` : ""}
-             <span class="prompt-word">${esc(ex.promptText)}</span>
-           </div>`}
+             ${ex.promptText ? `<span class="prompt-word">${esc(ex.promptText)}</span>` : ""}
+           </div>`
+        : ""}
       <div class="options">
         ${ex.options.map((o, i) => `
           <button class="option" data-opt="${esc(o)}"><span class="opt-num">${i + 1}</span>${esc(o)}</button>`).join("")}
@@ -1499,7 +1712,7 @@ function renderResults() {
     <div class="results">
       <div class="big-emoji">${r.perfect ? "🏆" : "🎉"}</div>
       <h1>${r.perfect ? "¡Lección perfecta!" : "¡Lección completada!"}</h1>
-      <p class="sub">${r.mode === "practice" ? "Práctica terminada — Bikain! (+1 ❤️)" : "Zorionak! (¡Enhorabuena!)"}</p>
+      <p class="sub">${r.mode === "practice" ? "Práctica terminada — Bikain! (+1 ❤️)" : r.mode === "story" ? "Istorioa osatuta! (¡Historia completada!)" : "Zorionak! (¡Enhorabuena!)"}</p>
       <div class="result-cards">
         <div class="result-card xp"><div class="rc-title">XP total</div><div class="rc-value" id="xp-count">+0</div></div>
         <div class="result-card acc"><div class="rc-title">Precisión</div><div class="rc-value">${r.acc}%</div></div>
