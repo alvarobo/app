@@ -280,12 +280,12 @@ function markSpeaking(on) {
   document.querySelectorAll(".speaker-btn").forEach(b => b.classList.toggle("speaking", on));
 }
 
+// Solo cuando el navegador no tiene síntesis de voz en absoluto.
 function ttsFailed() {
   if (!ttsBroken) {
     ttsBroken = true;
-    toast("Tu navegador no tiene voz de síntesis disponible 🔇");
+    toast("Tu navegador no tiene voz de síntesis 🔇 Usa «Ver la palabra»");
   }
-  revealListenWord();
 }
 
 function speak(text) {
@@ -297,17 +297,17 @@ function speak(text) {
   if (v) { u.voice = v; u.lang = v.lang; }
   else u.lang = "es-ES"; // sin lista de voces: deja hablar al motor por defecto
   u.rate = 0.85;
-  let started = false;
-  u.onstart = () => { started = true; markSpeaking(true); };
+  u.onstart = () => markSpeaking(true);
   u.onend = () => markSpeaking(false);
-  u.onerror = () => { markSpeaking(false); if (!started) ttsFailed(); };
+  u.onerror = () => markSpeaking(false);
   // Chrome ignora a veces un speak() inmediatamente después de cancel(),
   // y puede quedarse en estado "paused": pequeño retardo + resume().
+  // NOTA: nada de heurísticas de "audio roto" aquí — en iOS dan falsos
+  // positivos y acababan revelando la palabra de los ejercicios de
+  // escucha. La palabra solo se muestra si el usuario lo pide.
   setTimeout(() => {
-    try { synth.resume(); synth.speak(u); } catch (e) { ttsFailed(); }
+    try { synth.resume(); synth.speak(u); } catch (e) {}
   }, 60);
-  // Si tras 1,5 s no ha empezado a hablar, no hay voz utilizable.
-  setTimeout(() => { if (!started && !synth.speaking) ttsFailed(); }, 1500);
 }
 
 // Los navegadores móviles bloquean el audio hasta el primer gesto del
@@ -1241,8 +1241,8 @@ function renderExercise(ex) {
     const sp = box.querySelector("#speak");
     if (sp) sp.addEventListener("click", () => speak(ex.speakText));
     if (ex.type === "listen") {
+      // La palabra queda SIEMPRE oculta salvo que el usuario toque el enlace.
       box.querySelector("#tts-reveal").addEventListener("click", revealListenWord);
-      if (ttsBroken) revealListenWord(); // muestra la palabra, pero sigue intentando el audio
       setTimeout(() => speak(ex.speakText), 350);
     }
   }

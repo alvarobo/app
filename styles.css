@@ -362,6 +362,8 @@ button, .chip, .option, .match-btn, .lesson-btn {
   border: 2px dashed var(--blue); border-radius: 12px;
   padding: 8px 18px; background: var(--blue-soft);
 }
+/* el display de la clase no debe pisar el atributo hidden */
+.revealed-word[hidden] { display: none; }
 .prompt-word { font-size: 21px; font-weight: 700; }
 
 /* Opciones */
