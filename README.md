@@ -40,6 +40,18 @@ python3 -m http.server 8000
 # → http://localhost:8000
 ```
 
+## 📱 Instalar como app (PWA)
+
+Euskaltxo es una **aplicación web progresiva**: servida por HTTPS (por ejemplo con GitHub Pages) se puede instalar en el móvil y funciona sin conexión.
+
+**Publicar con GitHub Pages:** en el repositorio, `Settings → Pages → Deploy from a branch`, elige la rama y la carpeta `/ (root)` y guarda. En un minuto la app queda en `https://<usuario>.github.io/<repo>/`.
+
+**En iPhone/iPad:** abrir la URL en Safari → botón Compartir → **Añadir a pantalla de inicio**. Queda instalada con su icono, a pantalla completa y disponible offline.
+
+**En Android:** Chrome ofrece «Instalar aplicación» automáticamente (o menú ⋮ → Añadir a pantalla de inicio).
+
+El progreso se guarda en cada dispositivo (localStorage), así que cada persona tiene el suyo.
+
 ## 🗂️ Estructura
 
 | Archivo | Contenido |
