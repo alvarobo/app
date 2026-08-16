@@ -202,6 +202,20 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .speaker-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--blue-dark); }
 .speaker-btn.big { width: 90px; height: 90px; font-size: 40px; border-radius: 22px; margin: 20px auto; display: block; }
+.speaker-btn.speaking { animation: speaking .6s infinite alternate; }
+@keyframes speaking { from { transform: scale(1); } to { transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .speaker-btn.speaking { animation: none; } }
+.tts-fallback { text-align: center; margin-bottom: 18px; }
+.tts-help {
+  font-size: 13px; font-weight: 800; color: var(--gray-3);
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.revealed-word {
+  display: inline-block;
+  font-size: 22px; font-weight: 900; color: var(--blue-dark);
+  border: 2px dashed var(--blue); border-radius: 12px;
+  padding: 8px 18px; background: #ddf4ff;
+}
 .prompt-word { font-size: 20px; font-weight: 700; }
 
 /* Opciones */

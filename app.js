@@ -133,28 +133,70 @@ function toast(msg) {
 
 /* ---------------- Audio: TTS y efectos ---------------- */
 
-let euVoice = null;
-function pickVoice() {
-  if (!("speechSynthesis" in window)) return;
-  const voices = speechSynthesis.getVoices();
-  euVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith("eu"))
-         || voices.find(v => v.lang && v.lang.toLowerCase().startsWith("es"))
-         || null;
+// La disponibilidad de voces varía mucho entre navegadores: casi ninguno
+// trae voz en euskera, así que caemos a una voz en español (la lectura es
+// casi idéntica) y, si ni siquiera eso funciona, avisamos y ofrecemos ver
+// la palabra en los ejercicios de escucha.
+let ttsBroken = false;
+
+function bestVoice() {
+  const vs = speechSynthesis.getVoices();
+  return vs.find(v => v.lang && v.lang.toLowerCase().startsWith("eu"))
+      || vs.find(v => v.lang && v.lang.toLowerCase().startsWith("es"))
+      || vs.find(v => v.default)
+      || vs[0] || null;
 }
-if ("speechSynthesis" in window) {
-  pickVoice();
-  speechSynthesis.onvoiceschanged = pickVoice;
+
+function markSpeaking(on) {
+  document.querySelectorAll(".speaker-btn").forEach(b => b.classList.toggle("speaking", on));
+}
+
+function ttsFailed() {
+  if (!ttsBroken) {
+    ttsBroken = true;
+    toast("Tu navegador no tiene voz de síntesis disponible 🔇");
+  }
+  revealListenWord();
 }
 
 function speak(text) {
-  if (!("speechSynthesis" in window)) return;
-  speechSynthesis.cancel();
+  if (!("speechSynthesis" in window)) { ttsFailed(); return; }
+  const synth = speechSynthesis;
+  try { synth.cancel(); } catch (e) {}
   const u = new SpeechSynthesisUtterance(text);
-  u.lang = euVoice && euVoice.lang.toLowerCase().startsWith("eu") ? euVoice.lang : "eu-ES";
-  if (euVoice) u.voice = euVoice;
+  const v = bestVoice();
+  if (v) { u.voice = v; u.lang = v.lang; }
+  else u.lang = "es-ES"; // sin lista de voces: deja hablar al motor por defecto
   u.rate = 0.85;
-  speechSynthesis.speak(u);
+  let started = false;
+  u.onstart = () => { started = true; markSpeaking(true); };
+  u.onend = () => markSpeaking(false);
+  u.onerror = () => { markSpeaking(false); if (!started) ttsFailed(); };
+  // Chrome ignora a veces un speak() inmediatamente después de cancel(),
+  // y puede quedarse en estado "paused": pequeño retardo + resume().
+  setTimeout(() => {
+    try { synth.resume(); synth.speak(u); } catch (e) { ttsFailed(); }
+  }, 60);
+  // Si tras 1,5 s no ha empezado a hablar, no hay voz utilizable.
+  setTimeout(() => { if (!started && !synth.speaking) ttsFailed(); }, 1500);
 }
+
+// Los navegadores móviles bloquean el audio hasta el primer gesto del
+// usuario: desbloqueamos el AudioContext y "calentamos" la síntesis.
+document.addEventListener("pointerdown", function unlockAudio() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx.resume();
+  } catch (e) {}
+  try {
+    if ("speechSynthesis" in window) {
+      speechSynthesis.getVoices();
+      const w = new SpeechSynthesisUtterance(" ");
+      w.volume = 0;
+      speechSynthesis.speak(w);
+    }
+  } catch (e) {}
+}, { once: true });
 
 let audioCtx = null;
 function beep(freqs, dur = 0.13, type = "sine", gain = 0.12) {
@@ -710,6 +752,14 @@ function renderLesson() {
   renderExercise(ex);
 }
 
+// Respaldo de los ejercicios de escucha cuando el audio no está disponible.
+function revealListenWord() {
+  const r = document.getElementById("revealed-word");
+  const b = document.getElementById("tts-reveal");
+  if (r) r.hidden = false;
+  if (b) b.hidden = true;
+}
+
 function setCheckEnabled(on) {
   const b = document.getElementById("check");
   if (b) b.disabled = !on;
@@ -725,7 +775,11 @@ function renderExercise(ex) {
     box.innerHTML = `
       <h1>${esc(ex.title)}</h1>
       ${ex.type === "listen"
-        ? `<button class="speaker-btn big" id="speak">🔊</button>`
+        ? `<button class="speaker-btn big" id="speak">🔊</button>
+           <div class="tts-fallback">
+             <button class="tts-help" id="tts-reveal">¿No suena? Ver la palabra</button>
+             <div class="revealed-word" id="revealed-word" hidden>${esc(ex.speakText)}</div>
+           </div>`
         : `<div class="prompt-line">
              ${ex.speakText ? `<button class="speaker-btn" id="speak">🔊</button>` : ""}
              <span class="prompt-word">${esc(ex.promptText)}</span>
@@ -743,9 +797,11 @@ function renderExercise(ex) {
     }));
     getAnswer = () => selected;
     const sp = box.querySelector("#speak");
-    if (sp) {
-      sp.addEventListener("click", () => speak(ex.speakText));
-      if (ex.type === "listen") setTimeout(() => speak(ex.speakText), 350);
+    if (sp) sp.addEventListener("click", () => speak(ex.speakText));
+    if (ex.type === "listen") {
+      box.querySelector("#tts-reveal").addEventListener("click", revealListenWord);
+      if (ttsBroken) revealListenWord();
+      else setTimeout(() => speak(ex.speakText), 350);
     }
   }
 
