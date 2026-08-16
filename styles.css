@@ -25,6 +25,15 @@
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
 html, body { height: 100%; }
+html { -webkit-text-size-adjust: 100%; }
+
+/* iOS: sin retardo de toque, sin zoom por doble toque y sin menú
+   de selección al mantener pulsado sobre los controles del juego. */
+button, .chip, .option, .match-btn, .lesson-btn {
+  touch-action: manipulation;
+  -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none;
+}
 
 body {
   font-family: "Nunito", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -64,6 +73,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   background: #fff;
   border-bottom: 2px solid var(--gray-2);
   padding: 10px 16px;
+  padding-top: calc(10px + env(safe-area-inset-top)); /* notch iPhone */
 }
 .topbar-inner {
   max-width: 560px; margin: 0 auto;
@@ -154,6 +164,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .bottomnav {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
   background: #fff; border-top: 2px solid var(--gray-2);
+  padding-bottom: env(safe-area-inset-bottom); /* barra inicio iPhone */
 }
 .bottomnav-inner {
   max-width: 560px; margin: 0 auto;
@@ -279,6 +290,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
   border-top: 2px solid var(--gray-2); background: #fff;
   padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
 }
 .lesson-footer.ok { background: var(--green-light); border-color: var(--green-light); }
 .lesson-footer.ko { background: var(--red-light); border-color: var(--red-light); }
@@ -340,6 +352,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   font-size: 12px; font-weight: 700; color: var(--gray-3);
 }
 .app-version b { color: var(--gray-4); }
+.settings-btn { margin-bottom: 8px; text-transform: none; letter-spacing: 0; }
 
 /* ---------- Modal sin vidas ---------- */
 .modal-backdrop {

@@ -299,6 +299,18 @@ document.addEventListener("pointerdown", function unlockAudio() {
     audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
     audioCtx.resume();
   } catch (e) {}
+  // "Estrenar" los <audio> de los efectos dentro del gesto: iOS solo
+  // permite reproducir elementos que ya se hayan tocado con permiso.
+  try {
+    for (const name of Object.keys(SFX_SPECS)) {
+      const a = getSfx(name);
+      a.muted = true;
+      const p = a.play();
+      if (p && p.then) p.then(() => { a.pause(); a.currentTime = 0; a.muted = false; })
+                        .catch(() => { a.muted = false; });
+      else { a.pause(); a.currentTime = 0; a.muted = false; }
+    }
+  } catch (e) {}
   try {
     if ("speechSynthesis" in window) {
       speechSynthesis.getVoices();
@@ -309,9 +321,13 @@ document.addEventListener("pointerdown", function unlockAudio() {
   } catch (e) {}
 }, { once: true });
 
+/* Efectos de sonido.
+   IMPORTANTE (iPhone): el interruptor de silencio mutea la Web Audio
+   API pero NO los elementos <audio>. Por eso sintetizamos cada efecto
+   como un WAV corto y lo reproducimos por <audio> (suena siempre),
+   dejando la Web Audio API solo como respaldo. */
+
 let audioCtx = null;
-// Notas con ataque y caída suaves (sin clics) para que los aciertos
-// suenen a premio y no a pitido.
 function beep(freqs, dur = 0.11, type = "triangle", gain = 0.16) {
   if (S.sound === false) return;
   try {
@@ -332,12 +348,79 @@ function beep(freqs, dur = 0.11, type = "triangle", gain = 0.16) {
     });
   } catch (e) {}
 }
-// Acierto: arpegio mayor ascendente (do–mi–sol), alegre y breve.
-const sfxOk = () => beep([523.25, 659.25, 783.99], 0.075, "triangle", 0.18);
-// Fallo: dos notas graves descendentes, suaves (nada de zumbidos).
-const sfxKo = () => beep([196, 164.81], 0.16, "sine", 0.1);
-// Fin de lección: fanfarria do–mi–sol–do agudo.
-const sfxWin = () => beep([523.25, 659.25, 783.99, 1046.5], 0.12, "triangle", 0.18);
+
+const SFX_SPECS = {
+  // Acierto: arpegio mayor ascendente do–mi–sol, alegre y breve.
+  ok:   { notes: [523.25, 659.25, 783.99], dur: 0.075, type: "triangle", gain: 0.5 },
+  // Fallo: dos notas graves descendentes, suaves.
+  ko:   { notes: [196, 164.81], dur: 0.16, type: "sine", gain: 0.35 },
+  // Fin de lección: fanfarria do–mi–sol–do agudo.
+  win:  { notes: [523.25, 659.25, 783.99, 1046.5], dur: 0.12, type: "triangle", gain: 0.5 },
+  // Pareja emparejada: toque corto.
+  pair: { notes: [880], dur: 0.06, type: "triangle", gain: 0.4 },
+};
+
+// Sintetiza las notas como un WAV PCM de 16 bits y devuelve una URL blob.
+function synthWavUrl(spec) {
+  const sr = 22050;
+  const total = Math.ceil(sr * (spec.notes.length * spec.dur + 0.3));
+  const data = new Float32Array(total);
+  spec.notes.forEach((f, i) => {
+    const start = Math.floor(i * spec.dur * sr);
+    const len = Math.floor(spec.dur * 1.9 * sr);
+    for (let n = 0; n < len && start + n < total; n++) {
+      const t = n / sr;
+      const env = Math.min(1, t / 0.015) * Math.exp(-t * (3 / (spec.dur * 1.9)));
+      const ph = f * t;
+      const tri = 2 * Math.abs(2 * (ph - Math.floor(ph + 0.5))) - 1;
+      const s = spec.type === "sine" ? Math.sin(2 * Math.PI * ph) : tri;
+      data[start + n] += s * env * spec.gain;
+    }
+  });
+  const buf = new ArrayBuffer(44 + total * 2);
+  const v = new DataView(buf);
+  const wstr = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
+  wstr(0, "RIFF"); v.setUint32(4, 36 + total * 2, true); wstr(8, "WAVE");
+  wstr(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  wstr(36, "data"); v.setUint32(40, total * 2, true);
+  for (let i = 0; i < total; i++) {
+    const s = Math.max(-1, Math.min(1, data[i]));
+    v.setInt16(44 + i * 2, s * 32767, true);
+  }
+  return URL.createObjectURL(new Blob([buf], { type: "audio/wav" }));
+}
+
+const SFX = {};
+function getSfx(name) {
+  if (!SFX[name]) {
+    const a = new Audio(synthWavUrl(SFX_SPECS[name]));
+    a.setAttribute("playsinline", "");
+    a.preload = "auto";
+    SFX[name] = a;
+  }
+  return SFX[name];
+}
+
+function playSfx(name) {
+  if (S.sound === false) return;
+  try {
+    const a = getSfx(name);
+    a.currentTime = 0;
+    const p = a.play();
+    if (p && p.catch) p.catch(() => {
+      const s = SFX_SPECS[name];
+      beep(s.notes, s.dur, s.type, 0.16);
+    });
+  } catch (e) {
+    const s = SFX_SPECS[name];
+    beep(s.notes, s.dur, s.type, 0.16);
+  }
+}
+
+const sfxOk = () => playSfx("ok");
+const sfxKo = () => playSfx("ko");
+const sfxWin = () => playSfx("win");
 
 /* ---------------- Generación de ejercicios ---------------- */
 
@@ -730,7 +813,15 @@ function renderHome() {
   if (snd) snd.addEventListener("click", () => {
     S.sound = S.sound === false ? true : false;
     saveState(); render();
+    if (S.sound !== false) playSfx("ok"); // muestra de cómo suena
   });
+
+  const upd = app.querySelector("#check-update");
+  if (upd) upd.addEventListener("click", checkForUpdate);
+  const exp = app.querySelector("#export-progress");
+  if (exp) exp.addEventListener("click", exportProgress);
+  const imp = app.querySelector("#import-progress");
+  if (imp) imp.addEventListener("click", importProgress);
 }
 
 function goalCardHTML() {
@@ -968,11 +1059,61 @@ function profileHTML() {
           </div>`).join("")}
       </div>
     </div>
-    <button class="btn btn-ghost btn-full" id="toggle-sound" style="margin-bottom:8px">
-      ${S.sound === false ? "🔇 Efectos de sonido: desactivados" : "🔊 Efectos de sonido: activados"}
-    </button>
+    <div class="profile-card">
+      <h2>⚙️ Ajustes</h2>
+      <button class="btn btn-ghost btn-full settings-btn" id="check-update">🔄 Buscar actualización</button>
+      <button class="btn btn-ghost btn-full settings-btn" id="toggle-sound">
+        ${S.sound === false ? "🔇 Efectos de sonido: desactivados" : "🔊 Efectos de sonido: activados"}
+      </button>
+      <button class="btn btn-ghost btn-full settings-btn" id="export-progress">📋 Copiar código de progreso</button>
+      <button class="btn btn-ghost btn-full settings-btn" id="import-progress">📥 Restaurar progreso con código</button>
+      <p class="page-sub" style="margin:6px 0 0">«Buscar actualización» descarga la última versión <b>sin tocar tu progreso</b>. El código de progreso te permite llevar tu avance a otro dispositivo o recuperarlo si reinstalas: cópialo de vez en cuando y guárdalo en tus notas.</p>
+    </div>
     <div class="danger-zone"><button id="reset-progress">Borrar todo el progreso</button></div>
     <p class="app-version">🦉 Euskaltxo <b>v${APP_VERSION}</b> · ${APP_DATE}</p>`;
+}
+
+/* ---------------- Actualización y copia de progreso ---------------- */
+
+async function checkForUpdate() {
+  toast("Buscando la última versión… 🔄");
+  try {
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (const r of regs) await r.update();
+    }
+    if (window.caches) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+  } catch (e) {}
+  // El progreso vive en localStorage: recargar nunca lo toca.
+  setTimeout(() => location.reload(), 400);
+}
+
+function exportProgress() {
+  try {
+    const code = btoa(unescape(encodeURIComponent(JSON.stringify(S))));
+    const done = () => toast("Código copiado 📋 Guárdalo en tus notas");
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code).then(done).catch(() => prompt("Copia tu código de progreso:", code));
+    } else {
+      prompt("Copia tu código de progreso:", code);
+    }
+  } catch (e) { toast("No se pudo generar el código ❌"); }
+}
+
+function importProgress() {
+  const code = prompt("Pega aquí tu código de progreso:");
+  if (!code) return;
+  try {
+    const obj = JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
+    if (!obj || typeof obj.xp !== "number" || typeof obj.progress !== "object") throw new Error("bad");
+    S = Object.assign(defaultState(), obj);
+    saveState();
+    render();
+    toast("Progreso restaurado ✅ Ongi etorri berriro!");
+  } catch (e) { toast("Ese código no es válido ❌"); }
 }
 
 /* ---------------- Vista: lección ---------------- */
@@ -1158,7 +1299,7 @@ function renderExercise(ex) {
         sel.classList.remove("selected");
         sel.classList.add("matched"); btn.classList.add("matched");
         matched++;
-        beep([880], 0.06, "triangle", 0.12);
+        playSfx("pair");
         noteWord(eu, true);
         if (matched === ex.pairs.length) {
           // Emparejar completo cuenta como acierto automático.
