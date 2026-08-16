@@ -1,6 +1,6 @@
 /* Euskaltxo — service worker: deja la app disponible sin conexión. */
 
-const CACHE = "euskaltxo-v4";
+const CACHE = "euskaltxo-v5";
 const ASSETS = [
   "./",
   "./index.html",

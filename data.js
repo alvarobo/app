@@ -853,6 +853,135 @@ const DRILLS = {
 };
 
 /* ------------------------------------------------------------
+   Música en euskera ligada a las unidades: cada recomendación
+   indica qué palabras del curso aparecen o resuenan en la
+   canción. Se muestran al terminar lecciones y se coleccionan
+   como playlist en el perfil.
+   ------------------------------------------------------------ */
+const MUSIC = [
+  {
+    id: "txoria-txori",
+    artist: "Mikel Laboa",
+    song: "Txoria txori",
+    desc: "La canción vasca más universal: «si le hubiera cortado las alas, sería mío… pero ya no sería un pájaro». Un poema de Joxean Artze sobre la libertad y el amor.",
+    words: [{ eu: "txoria", es: "pájaro" }, { eu: "hegoak", es: "alas" }, { eu: "maite", es: "querido/amar" }],
+    units: ["aisialdia", "herria"],
+  },
+  {
+    id: "baga-biga",
+    artist: "Mikel Laboa",
+    song: "Baga, biga, higa (Lekeitio)",
+    desc: "Laboa convierte una vieja retahíla de contar en un tema hipnótico. Escucharás la forma antigua de los números que acabas de aprender.",
+    words: [{ eu: "baga ≈ bat", es: "uno" }, { eu: "biga ≈ bi", es: "dos" }, { eu: "higa ≈ hiru", es: "tres" }],
+    units: ["zenbakiak"],
+  },
+  {
+    id: "lau-teilatu",
+    artist: "Itoiz",
+    song: "Lau teilatu",
+    desc: "La balada más coreada del pop vasco: «cuatro tejados» y una noche entre amigos. La cantan a una voz en cualquier fiesta.",
+    words: [{ eu: "lau", es: "cuatro" }, { eu: "teilatua", es: "tejado" }, { eu: "gaba (gaua)", es: "noche" }],
+    units: ["zenbakiak", "etxea"],
+  },
+  {
+    id: "ilargia",
+    artist: "Ken Zazpi",
+    song: "Ilargia",
+    desc: "«La luna». Rock melódico de Gernika que toda una generación canta de memoria. Perfecta para el vocabulario de la noche.",
+    words: [{ eu: "ilargia", es: "luna" }, { eu: "gaua", es: "noche" }],
+    units: ["ordua", "eguraldia"],
+  },
+  {
+    id: "agur-jaunak",
+    artist: "Tradicional",
+    song: "Agur Jaunak",
+    desc: "El himno de despedida y homenaje por excelencia: se canta de pie en actos y despedidas. Todo el mundo en Euskadi lo conoce.",
+    words: [{ eu: "agur", es: "adiós" }, { eu: "jaunak", es: "señores" }],
+    units: ["agurrak"],
+  },
+  {
+    id: "eh-euskaraz",
+    artist: "Oskorri",
+    song: "Euskal Herrian Euskaraz",
+    desc: "Himno festivo a favor de vivir en euskera, con letra del bertsolari Xabier Amuriza. Ideal para la unidad de presentarse.",
+    words: [{ eu: "euskaraz", es: "en euskera" }, { eu: "euskalduna", es: "vasco/vascohablante" }, { eu: "hitz egin", es: "hablar" }],
+    units: ["aurkezpenak", "lana"],
+  },
+  {
+    id: "aita-semeak",
+    artist: "Popular (versión de Oskorri)",
+    song: "Aita-semeak tabernan daude",
+    desc: "Canción popular con guiño picarón: «padre e hijos están en la taberna, madre e hijas en el juego». ¡Toda la familia del tirón!",
+    words: [{ eu: "aita", es: "padre" }, { eu: "semea", es: "hijo" }, { eu: "ama", es: "madre" }, { eu: "taberna", es: "bar" }],
+    units: ["familia", "janaria"],
+  },
+  {
+    id: "zeinen-ederra",
+    artist: "Zetak",
+    song: "Zeinen ederra izango den",
+    desc: "«Qué bonito será». El gran himno reciente del pop vasco, de Pello Reparaz. Optimismo puro para la unidad de describir.",
+    words: [{ eu: "ederra", es: "hermoso" }, { eu: "izango den", es: "será" }],
+    units: ["deskribapenak"],
+  },
+  {
+    id: "kolore-bizia",
+    artist: "Betagarri",
+    song: "Kolore bizia",
+    desc: "Ska festivo de Vitoria-Gasteiz: «color vivo». Energía para repasar los colores bailando.",
+    words: [{ eu: "kolorea", es: "color" }, { eu: "bizia", es: "vivo" }],
+    units: ["koloreak"],
+  },
+  {
+    id: "aldapan-gora",
+    artist: "Huntza",
+    song: "Aldapan gora",
+    desc: "El fenómeno que devolvió la trikitixa a las pistas de baile: «cuesta arriba». Imposible no moverse.",
+    words: [{ eu: "aldapa", es: "cuesta" }, { eu: "gora", es: "arriba" }],
+    units: ["herria", "aisialdia"],
+  },
+  {
+    id: "noa",
+    artist: "Esne Beltza",
+    song: "Noa",
+    desc: "«Voy». Mestizaje festivo para aprender el verbo joan en su forma más útil: ni noa, ¡me voy!",
+    words: [{ eu: "noa", es: "voy" }, { eu: "joan", es: "ir" }],
+    units: ["garraioa"],
+  },
+  {
+    id: "boga-boga",
+    artist: "Tradicional",
+    song: "Boga boga",
+    desc: "Canción marinera de despedida: «rema, rema, marinero». La joya coral del Cantábrico.",
+    words: [{ eu: "itsasoa", es: "mar" }, { eu: "itsasontzia", es: "barco" }, { eu: "marinela", es: "marinero" }],
+    units: ["garraioa", "herria"],
+  },
+  {
+    id: "izarren-hautsa",
+    artist: "Xabier Lete (versión de Ken Zazpi)",
+    song: "Izarren hautsa",
+    desc: "«Polvo de estrellas»: uno de los poemas cantados más bellos del euskera. Para la unidad del cielo y el tiempo.",
+    words: [{ eu: "izarra", es: "estrella" }, { eu: "hautsa", es: "polvo" }],
+    units: ["eguraldia"],
+  },
+  {
+    id: "haika-mutil",
+    artist: "Mikel Laboa",
+    song: "Haika mutil",
+    desc: "Diálogo entre una madre y su hijo: «¡arriba, chico, levántate!». Literalmente la unidad de las rutinas hecha canción.",
+    words: [{ eu: "jaiki", es: "levantarse" }, { eu: "mutila", es: "chico" }, { eu: "ama", es: "madre" }],
+    units: ["egunerokoa", "familia"],
+  },
+  {
+    id: "maite-zaitut",
+    artist: "Pirritx eta Porrotx",
+    song: "Maite zaitut",
+    desc: "«Te quiero», el clásico de los payasos más queridos de Euskal Herria. La cantan igual niños y cuadrillas enteras.",
+    words: [{ eu: "maite zaitut", es: "te quiero" }, { eu: "laguna", es: "amigo" }],
+    units: ["aisialdia", "erosketak"],
+  },
+];
+
+/* ------------------------------------------------------------
    Curiosidades culturales para las pantallas de resultados.
    ------------------------------------------------------------ */
 const TIPS = [

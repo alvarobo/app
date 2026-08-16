@@ -478,6 +478,50 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .tip-card b { color: var(--text); }
 
+/* ---------- Música en euskera ---------- */
+.music-card {
+  max-width: 420px; text-align: left; width: 100%;
+  border: 2px solid var(--purple); border-radius: var(--radius);
+  padding: 14px 16px; margin-bottom: 22px;
+  background: #faf5ff;
+}
+.music-head {
+  font-size: 12px; font-weight: 900; color: var(--purple);
+  text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px;
+}
+.music-title { font-size: 16px; margin-bottom: 6px; }
+.music-card p { font-size: 14px; font-weight: 600; color: var(--gray-4); line-height: 1.5; margin-bottom: 10px; }
+.music-words { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.music-chip {
+  font-size: 12px; font-weight: 700; color: var(--text);
+  background: #fff; border: 1px solid var(--gray-2); border-radius: 8px;
+  padding: 4px 8px;
+}
+.music-link {
+  display: inline-block; text-decoration: none;
+  background: var(--purple); color: #fff;
+  font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: .5px;
+  padding: 9px 16px; border-radius: 12px;
+  box-shadow: 0 3px 0 #a75dd6;
+}
+.music-link:active { transform: translateY(2px); box-shadow: 0 1px 0 #a75dd6; }
+
+.playlist-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0; border-bottom: 1px solid var(--gray-1);
+}
+.playlist-row:last-of-type { border-bottom: none; }
+.pl-ico { font-size: 20px; }
+.pl-song { flex: 1; font-size: 14px; line-height: 1.3; }
+.pl-artist { font-size: 12px; color: var(--gray-4); font-weight: 600; }
+.pl-play {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  background: var(--purple); color: #fff; text-decoration: none;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; box-shadow: 0 3px 0 #a75dd6;
+}
+.pl-play:active { transform: translateY(2px); box-shadow: 0 1px 0 #a75dd6; }
+
 /* ---------- Confeti ---------- */
 .confetti {
   position: fixed; top: -14px; z-index: 80;

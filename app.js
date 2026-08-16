@@ -27,6 +27,7 @@ const defaultState = () => ({
   goalXp: 0,              // XP conseguidos hoy
   goalRewarded: null,     // día en que ya se cobró el cofre diario
   sound: true,            // efectos de sonido
+  musicShown: {},         // id de canción -> true (playlist descubierta)
 });
 
 let S = loadState();
@@ -162,6 +163,40 @@ const BADGES = [
   { id: "words50", icon: "🗣️", t: "Hiztuna", d: "Practica 50 palabras distintas", test: () => Object.keys(S.wordStats).length >= 50 },
   { id: "gems300", icon: "💰", t: "Aberatsa", d: "Acumula 300 gemas", test: () => S.gems >= 300 },
 ];
+
+/* ---------------- Música en euskera ---------------- */
+
+// Elige una canción aún no descubierta, preferiblemente de la unidad dada.
+function pickMusic(unitId) {
+  let cand = MUSIC.filter(m => !S.musicShown[m.id] && (!unitId || m.units.includes(unitId)));
+  if (!cand.length && !unitId) cand = MUSIC.filter(m => !S.musicShown[m.id]);
+  return cand.length ? pick(cand) : null;
+}
+
+function musicSearchUrl(m) {
+  // Para canciones tradicionales el nombre del artista no ayuda a buscar.
+  const generic = /^(tradicional|popular)/i.test(m.artist);
+  const q = generic ? m.song + " euskaraz" : m.artist + " " + m.song;
+  return "https://www.youtube.com/results?search_query=" + encodeURIComponent(q);
+}
+
+function extraCardHTML(r) {
+  if (r.music) {
+    const m = r.music;
+    return `
+      <div class="music-card">
+        <div class="music-head">🎵 Canción para esta unidad</div>
+        <div class="music-title"><b>${esc(m.song)}</b> — ${esc(m.artist)}</div>
+        <p>${esc(m.desc)}</p>
+        <div class="music-words">
+          ${m.words.map(w => `<span class="music-chip"><b>${esc(w.eu)}</b> · ${esc(w.es)}</span>`).join("")}
+        </div>
+        <a class="music-link" href="${musicSearchUrl(m)}" target="_blank" rel="noopener">▶ Escuchar en YouTube</a>
+      </div>`;
+  }
+  if (r.tip) return `<div class="tip-card">💡 <b>¿Sabías que…?</b> ${esc(r.tip)}</div>`;
+  return "";
+}
 
 function checkBadges() {
   for (const b of BADGES) {
@@ -542,7 +577,13 @@ function finishLesson() {
   const acc = total ? Math.round((s.correct / total) * 100) : 100;
   let xp = 0, gems = 0;
 
-  const tip = pick(TIPS);
+  // Extra de resultados: canción de la unidad si queda alguna por
+  // descubrir; si no, una curiosidad cultural.
+  let music = null;
+  if (s.mode === "lesson") music = pickMusic(COURSE[s.unitIdx].id);
+  else if (s.mode === "practice" && Math.random() < 0.35) music = pickMusic(null);
+  if (music) S.musicShown[music.id] = true;
+  const tip = music ? null : pick(TIPS);
 
   if (s.mode === "lesson") {
     xp = 10 + s.bestCombo;
@@ -562,7 +603,7 @@ function finishLesson() {
     checkBadges();
     saveState();
     sfxWin();
-    route = { view: "results", exam: true, xp, gems, acc, perfect: s.wrong === 0, tip };
+    route = { view: "results", exam: true, xp, gems, acc, perfect: s.wrong === 0, tip, music };
     session = null;
     render();
     return;
@@ -575,7 +616,7 @@ function finishLesson() {
   checkBadges();
   saveState();
   sfxWin();
-  route = { view: "results", xp, gems, acc, perfect: s.wrong === 0, mode: s.mode, tip };
+  route = { view: "results", xp, gems, acc, perfect: s.wrong === 0, mode: s.mode, tip, music };
   session = null;
   render();
 }
@@ -892,6 +933,20 @@ function profileHTML() {
             <span class="pct">${pct}%</span>
           </div>`;
       }).join("")}
+    </div>
+    <div class="profile-card">
+      <h2>🎵 Tu playlist en euskera</h2>
+      ${(() => {
+        const discovered = MUSIC.filter(m => S.musicShown[m.id]);
+        if (!discovered.length) return `<p class="page-sub" style="margin:0">Completa lecciones para ir descubriendo canciones en euskera relacionadas con lo que aprendes.</p>`;
+        return discovered.map(m => `
+          <div class="playlist-row">
+            <span class="pl-ico">🎵</span>
+            <span class="pl-song"><b>${esc(m.song)}</b><br><span class="pl-artist">${esc(m.artist)}</span></span>
+            <a class="pl-play" href="${musicSearchUrl(m)}" target="_blank" rel="noopener" aria-label="Escuchar ${esc(m.song)}">▶</a>
+          </div>`).join("") +
+          `<p class="page-sub" style="margin:10px 0 0">${discovered.length}/${MUSIC.length} canciones descubiertas</p>`;
+      })()}
     </div>
     <div class="profile-card">
       <h2>🏆 Logros</h2>
@@ -1223,7 +1278,7 @@ function renderResults() {
           <div class="result-card acc"><div class="rc-title">Precisión</div><div class="rc-value">${r.acc}%</div></div>
           <div class="result-card combo"><div class="rc-title">Gemas</div><div class="rc-value">+${r.gems} 💎</div></div>
         </div>
-        ${r.tip ? `<div class="tip-card">💡 <b>¿Sabías que…?</b> ${esc(r.tip)}</div>` : ""}
+        ${extraCardHTML(r)}
         <button class="btn btn-primary btn-full" id="go-home" style="max-width:320px">Continuar</button>
       </div>`;
     document.getElementById("go-home").addEventListener("click", () => { route = { view: "home", tab: "learn" }; render(); });
@@ -1255,7 +1310,7 @@ function renderResults() {
         <div class="result-card acc"><div class="rc-title">Precisión</div><div class="rc-value">${r.acc}%</div></div>
         ${r.gems ? `<div class="result-card combo"><div class="rc-title">Gemas</div><div class="rc-value">+${r.gems} 💎</div></div>` : ""}
       </div>
-      ${r.tip ? `<div class="tip-card">💡 <b>¿Sabías que…?</b> ${esc(r.tip)}</div>` : ""}
+      ${extraCardHTML(r)}
       <button class="btn btn-primary btn-full" id="go-home" style="max-width:320px">Continuar</button>
     </div>`;
   document.getElementById("go-home").addEventListener("click", () => { route = { view: "home", tab: "learn" }; render(); });
