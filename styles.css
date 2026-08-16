@@ -335,6 +335,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .danger-zone { text-align: center; margin-top: 24px; }
 .danger-zone button { color: var(--red); font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: .5px; }
 
+.app-version {
+  text-align: center; margin-top: 18px;
+  font-size: 12px; font-weight: 700; color: var(--gray-3);
+}
+.app-version b { color: var(--gray-4); }
+
 /* ---------- Modal sin vidas ---------- */
 .modal-backdrop {
   position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 50;

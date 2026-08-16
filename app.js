@@ -310,25 +310,34 @@ document.addEventListener("pointerdown", function unlockAudio() {
 }, { once: true });
 
 let audioCtx = null;
-function beep(freqs, dur = 0.13, type = "sine", gain = 0.12) {
+// Notas con ataque y caída suaves (sin clics) para que los aciertos
+// suenen a premio y no a pitido.
+function beep(freqs, dur = 0.11, type = "triangle", gain = 0.16) {
   if (S.sound === false) return;
   try {
     audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const t0 = audioCtx.currentTime + 0.01;
     freqs.forEach((f, i) => {
+      const start = t0 + i * dur;
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
       o.type = type; o.frequency.value = f;
-      g.gain.setValueAtTime(gain, audioCtx.currentTime + i * dur);
-      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (i + 1) * dur);
+      g.gain.setValueAtTime(0.0001, start);
+      g.gain.exponentialRampToValueAtTime(gain, start + 0.015);     // ataque
+      g.gain.exponentialRampToValueAtTime(0.0001, start + dur * 1.9); // cola
       o.connect(g); g.connect(audioCtx.destination);
-      o.start(audioCtx.currentTime + i * dur);
-      o.stop(audioCtx.currentTime + (i + 1) * dur + 0.02);
+      o.start(start);
+      o.stop(start + dur * 2);
     });
   } catch (e) {}
 }
-const sfxOk = () => beep([660, 880], 0.12);
-const sfxKo = () => beep([220, 180], 0.18, "square", 0.07);
-const sfxWin = () => beep([523, 659, 784, 1047], 0.14);
+// Acierto: arpegio mayor ascendente (do–mi–sol), alegre y breve.
+const sfxOk = () => beep([523.25, 659.25, 783.99], 0.075, "triangle", 0.18);
+// Fallo: dos notas graves descendentes, suaves (nada de zumbidos).
+const sfxKo = () => beep([196, 164.81], 0.16, "sine", 0.1);
+// Fin de lección: fanfarria do–mi–sol–do agudo.
+const sfxWin = () => beep([523.25, 659.25, 783.99, 1046.5], 0.12, "triangle", 0.18);
 
 /* ---------------- Generación de ejercicios ---------------- */
 
@@ -962,7 +971,8 @@ function profileHTML() {
     <button class="btn btn-ghost btn-full" id="toggle-sound" style="margin-bottom:8px">
       ${S.sound === false ? "🔇 Efectos de sonido: desactivados" : "🔊 Efectos de sonido: activados"}
     </button>
-    <div class="danger-zone"><button id="reset-progress">Borrar todo el progreso</button></div>`;
+    <div class="danger-zone"><button id="reset-progress">Borrar todo el progreso</button></div>
+    <p class="app-version">🦉 Euskaltxo <b>v${APP_VERSION}</b> · ${APP_DATE}</p>`;
 }
 
 /* ---------------- Vista: lección ---------------- */
@@ -1148,7 +1158,7 @@ function renderExercise(ex) {
         sel.classList.remove("selected");
         sel.classList.add("matched"); btn.classList.add("matched");
         matched++;
-        beep([880], 0.08);
+        beep([880], 0.06, "triangle", 0.12);
         noteWord(eu, true);
         if (matched === ex.pairs.length) {
           // Emparejar completo cuenta como acierto automático.

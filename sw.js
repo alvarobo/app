@@ -1,6 +1,8 @@
 /* Euskaltxo — service worker: deja la app disponible sin conexión. */
 
-const CACHE = "euskaltxo-v5";
+// Debe coincidir con APP_VERSION en data.js: al cambiar, los clientes
+// instalados descartan la caché vieja y descargan la versión nueva.
+const CACHE = "euskaltxo-v1.6.0";
 const ASSETS = [
   "./",
   "./index.html",

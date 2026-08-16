@@ -1001,6 +1001,11 @@ const TIPS = [
   "Los euskaltegis son las escuelas donde las personas adultas aprenden euskera: ¡hay más de 100!",
 ];
 
+// Versión de la app: se muestra en el perfil y debe coincidir con la
+// caché del service worker (sw.js). Subir en cada release.
+const APP_VERSION = "1.6.0";
+const APP_DATE = "16/08/2026";
+
 // Nº de lecciones por unidad (la última es el repaso/examen de la unidad)
 const LESSONS_PER_UNIT = 4;
 const EXERCISES_PER_LESSON = 10;
