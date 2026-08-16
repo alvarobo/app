@@ -801,6 +801,86 @@ button, .chip, .option, .match-btn, .lesson-btn {
 .vocab-search:focus { border-color: var(--blue); }
 .vocab-search::placeholder { color: var(--text-faint); }
 
+/* ---------- Capa de videojuego: partículas y textos ---------- */
+.particle {
+  position: fixed; left: 0; top: 0; z-index: 90;
+  pointer-events: none;
+  border-radius: 2px;
+  animation: particleFly var(--dur, .7s) cubic-bezier(.2, .6, .4, 1) forwards;
+}
+@keyframes particleFly {
+  from { transform: translate(var(--x), var(--y)) scale(1) rotate(0deg); opacity: 1; }
+  to { transform: translate(calc(var(--x) + var(--dx)), calc(var(--y) + var(--dy))) scale(.35) rotate(var(--rot)); opacity: 0; }
+}
+.float-text {
+  position: fixed; left: 0; top: 0; z-index: 90;
+  pointer-events: none;
+  font-weight: 900; font-size: 21px; color: var(--brand);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .12);
+  animation: floatUp .95s ease-out forwards;
+}
+@keyframes floatUp {
+  0% { transform: translate(var(--x), var(--y)); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translate(var(--x), calc(var(--y) - 74px)); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .particle, .float-text { display: none; } }
+
+/* opción correcta: pop */
+.option.correct { animation: popCorrect .4s; }
+@keyframes popCorrect { 0% { transform: scale(1); } 40% { transform: scale(1.04); } 100% { transform: scale(1); } }
+
+/* pareja emparejada: pop */
+.match-btn.matched { animation: matchPop .35s; }
+@keyframes matchPop { 0% { transform: scale(1); } 50% { transform: scale(1.07); } 100% { transform: scale(1); } }
+
+/* hueco rellenado y fichas del banco: pop de entrada */
+.fill-sentence .gap.filled { animation: gapPop .25s; }
+@keyframes gapPop { 0% { transform: scale(.8); } 60% { transform: scale(1.1); } 100% { transform: scale(1); } }
+.answer-zone .chip { animation: chipIn .18s ease-out; }
+@keyframes chipIn { from { transform: scale(.7); opacity: .4; } }
+
+/* brillo deslizante en la barra de progreso */
+.progress-fill::before {
+  content: ""; position: absolute; inset: 0; border-radius: 9px;
+  background: linear-gradient(110deg, transparent 25%, rgba(255, 255, 255, .4) 50%, transparent 75%);
+  background-size: 200% 100%;
+  animation: shine 1.8s linear infinite;
+}
+@keyframes shine { from { background-position: 180% 0; } to { background-position: -80% 0; } }
+
+/* daño al perder una vida */
+.lesson-hearts.hurt { animation: hurt .55s; }
+@keyframes hurt {
+  0%, 100% { transform: scale(1); }
+  25% { transform: scale(1.25) rotate(-6deg); }
+  50% { transform: scale(.92) rotate(5deg); }
+  75% { transform: scale(1.1); }
+}
+
+/* llama encendida cuando ya has practicado hoy */
+.stat.streak.lit .ico { display: inline-block; animation: flame 1.1s infinite alternate ease-in-out; }
+@keyframes flame {
+  from { transform: scale(1) rotate(-3deg); filter: brightness(1); }
+  to { transform: scale(1.18) rotate(3deg); filter: brightness(1.25); }
+}
+
+/* búho saludando */
+.hero-owl { cursor: pointer; }
+.hero-owl.wiggle { animation: wiggle .6s; }
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-12deg) scale(1.06); }
+  50% { transform: rotate(9deg); }
+  75% { transform: rotate(-5deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .option.correct, .match-btn.matched, .fill-sentence .gap.filled,
+  .answer-zone .chip, .lesson-hearts.hurt, .stat.streak.lit .ico,
+  .hero-owl.wiggle, .progress-fill::before { animation: none; }
+}
+
 /* ---------- Confeti ---------- */
 .confetti {
   position: fixed; top: -14px; z-index: 80;

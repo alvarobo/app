@@ -942,7 +942,7 @@ function headerHTML() {
     <header class="topbar"><div class="topbar-inner">
       <div class="logo"><span>🦉</span> euskaltxo</div>
       <div class="stats">
-        <div class="stat streak" title="Racha de días"><span class="ico">🔥</span>${S.streak}</div>
+        <div class="stat streak ${S.streak > 0 && S.lastDay === todayStr() ? "lit" : ""}" title="Racha de días"><span class="ico">🔥</span>${S.streak}</div>
         <div class="stat gems" title="Gemas"><span class="ico">💎</span>${S.gems}</div>
         <div class="stat hearts" title="Vidas"><span class="ico">❤️</span>${S.hearts}</div>
       </div>
@@ -1031,6 +1031,15 @@ function renderHome() {
 
   app.querySelectorAll("[data-say]").forEach(b =>
     b.addEventListener("click", () => speak(b.dataset.say)));
+
+  const owl = app.querySelector(".hero-owl");
+  if (owl) owl.addEventListener("click", () => {
+    owl.classList.remove("wiggle");
+    void owl.offsetWidth; // reinicia la animación
+    owl.classList.add("wiggle");
+    speak("Kaixo!");
+    burst(owl, { emoji: ["💚", "✨"], n: 8 });
+  });
 
   const snd = app.querySelector("#toggle-sound");
   if (snd) snd.addEventListener("click", () => {
@@ -1640,7 +1649,9 @@ function renderExercise(ex) {
           session.correct++; session.combo++;
           session.bestCombo = Math.max(session.bestCombo, session.combo);
           sfxOk();
-          setTimeout(nextExercise, 500);
+          burst(box.querySelector(".match-grid"));
+          floatText(document.querySelector(".progress-track"), pick(PRAISE), "#58cc02");
+          setTimeout(nextExercise, 600);
         }
       } else {
         const a = sel, b = btn;
@@ -1726,6 +1737,18 @@ function showFeedback(ok, ex, { skipped } = {}) {
     <button class="btn ${ok ? "btn-primary" : "btn-red"}" id="continue">Continuar</button>`;
   document.getElementById("continue").addEventListener("click", nextExercise);
   document.getElementById("continue").focus();
+
+  // Capa visual de videojuego: partículas y textos flotantes.
+  const anchor = document.querySelector(".progress-track") || footer;
+  if (ok) {
+    const milestone = session.combo > 0 && session.combo % 5 === 0;
+    burst(document.getElementById("continue"), milestone ? { emoji: ["⭐", "✨", "🔥"], n: 18 } : {});
+    floatText(anchor, session.combo >= 2 ? `🔥 x${session.combo}` : pick(PRAISE),
+      session.combo >= 2 ? "#ff9600" : "#58cc02");
+  } else if (!skipped && session.mode === "lesson") {
+    const h = document.querySelector(".lesson-hearts");
+    if (h) { h.classList.add("hurt"); setTimeout(() => h.classList.remove("hurt"), 600); }
+  }
 }
 
 function nextExercise() {
@@ -1775,6 +1798,7 @@ function renderResults() {
     const rd = document.getElementById("redo");
     if (rd) rd.addEventListener("click", () => startRedo(r.failedExs));
     launchConfetti();
+    setTimeout(() => burst(document.querySelector(".big-emoji"), { emoji: ["🎓", "⭐", "✨"], n: 20 }), 300);
     countUp(document.getElementById("xp-count"), r.xp);
     return;
   }
@@ -1814,6 +1838,56 @@ function renderResults() {
 }
 
 /* ---------------- Celebraciones ---------------- */
+
+function reducedMotion() {
+  return window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+// Explosión de partículas desde un elemento (aciertos, hitos, examen).
+function burst(el, { colors, n = 14, emoji } = {}) {
+  if (reducedMotion() || !el) return;
+  const r = el.getBoundingClientRect();
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  for (let i = 0; i < n; i++) {
+    const p = document.createElement("span");
+    p.className = "particle";
+    const ang = (Math.PI * 2 * i) / n + Math.random() * 0.6;
+    const dist = 60 + Math.random() * 80;
+    p.style.setProperty("--x", cx + "px");
+    p.style.setProperty("--y", cy + "px");
+    p.style.setProperty("--dx", Math.cos(ang) * dist + "px");
+    p.style.setProperty("--dy", (Math.sin(ang) * dist - 50) + "px");
+    p.style.setProperty("--rot", (Math.random() * 400 - 200) + "deg");
+    p.style.setProperty("--dur", (0.55 + Math.random() * 0.35) + "s");
+    if (emoji) {
+      p.textContent = pick(emoji);
+      p.style.fontSize = (13 + Math.random() * 11) + "px";
+    } else {
+      p.style.background = pick(colors || ["#58cc02", "#1cb0f6", "#ffc800", "#ce82ff", "#ff9600"]);
+      const sz = 6 + Math.random() * 7;
+      p.style.width = sz + "px"; p.style.height = sz + "px";
+      if (Math.random() < .4) p.style.borderRadius = "50%";
+    }
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 1100);
+  }
+}
+
+// Texto que flota hacia arriba ("Bikain!", "🔥 x5"…).
+function floatText(el, text, color) {
+  if (reducedMotion() || !el) return;
+  const r = el.getBoundingClientRect();
+  const t = document.createElement("div");
+  t.className = "float-text";
+  t.textContent = text;
+  if (color) t.style.color = color;
+  t.style.setProperty("--x", (r.left + r.width / 2 - 40) + "px");
+  t.style.setProperty("--y", (r.top - 16) + "px");
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 1000);
+}
+
+const PRAISE = ["Bikain!", "Oso ondo!", "Primeran!", "Ederki!", "Aupa!"];
 
 function launchConfetti() {
   if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
